@@ -17,12 +17,15 @@ extern "C" {
 #endif
 
 // the monitoring cores
-extern std::vector<int> MONITORED_CORES_VALUE;
+extern std::vector<int> BWMAN_CORES;
+extern int active_cpus;
 // Maximum number of nodes in the system
 
 // The adaptation step
 // TODO: Make this a command line parameter!
 #define ADAPTATION_STEP 10  // E.g. Move 10% of shared pages to the worker nodes
+
+void start_bw_manager(void);
 
 #ifdef __cplusplus
 }  // extern "C"

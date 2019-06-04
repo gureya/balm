@@ -50,7 +50,6 @@ CpuInfo_t info;
 static int nnodes;
 static int ncpus_per_node;
 static int ncpus;
-static int active_cpus;
 
 //list of all the events for the different architectures supported
 //char amd_estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
@@ -90,8 +89,8 @@ void initialize_likwid() {
     ncpus_per_node = ncpus / nnodes;
 
     //active_cpus = OPT_NUM_WORKERS_VALUE * ncpus_per_node;
-    //OPT_NUM_WORKERS_VALUE=3;
-    active_cpus = 1;
+    // is currently the size of the vector
+    active_cpus = BWMAN_CORES.size();
 
     LINFOF(
         "| [NODES] - %d: [CPUS] - %d: [CPUS_PER_NODE] - %d: [ACTIVE_CPUS] - %d |\n",
@@ -104,9 +103,10 @@ void initialize_likwid() {
     if (!cpus)
       exit(-1);   //return 1;
 
-    //If monitoring core has not been specified, then we assume core Zero as the monitoring core
+    //set the monitoring core
     for (int i = 0; i < active_cpus; i++) {
-      cpus[i] = topo->threadPool[i].apicId;
+      cpus[i] = BWMAN_CORES.at(i);
+      //cpus[i] = topo->threadPool[i].apicId;
     }
 
     // Must be called before perfmon_init() but only if you want to use another
@@ -186,82 +186,17 @@ void initialize_likwid() {
 
 }
 
-double get_elapsed_stall_rate() {
-  //int i, j;
+std::vector<double> get_stall_rate() {
+  int i;
   double result = 0.0;
 
   //static double prev_cycles = 0;
-  static double elapsed_stalls = 0;
-  static uint64_t elapsed_clockcounts = 0;
-
-  // Stop all counters in the previously started event set before doing a read.
-  err = perfmon_stopCounters();
-  if (err < 0) {
-    LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
-            (-1 * err) - 1);
-    perfmon_finalize();
-    topology_finalize();
-    //return 1;
-    exit(-1);
-  }
-
-  // Read the result of every thread/CPU for all events in estr.
-  // For now just read/print for the active cores only, actually just one core at the moment!
-  // double cycles = 0;
-  double stalls = 0;
-  //j = 0;
-  // char* ptr = NULL;
-  //Results depending on the architecture!
-  if (info->isIntel == 1) {
-    //ptr = strtok(intel_estr, ",");
-    // ptr = intel_estr;
-  } else if (info->isIntel == 0) {
-    //ptr = strtok(amd_estr, ",");
-    // ptr = amd_estr;
-  } else {
-    LDEBUG(
-        "Error: Something went wrong, can't get the measurements at the moment!\n");
-    exit(-1);
-  }
-
-  result = perfmon_getResult(gid, 0, 0);
-  stalls += result;
-
-  uint64_t clock = readtsc();  // read clock
-  //double stall_rate = (stalls - prev_stalls) / (cycles - prev_cycles);
-  stalls = stalls / active_cpus;
-  double stall_rate = ((double) (stalls - elapsed_stalls))
-      / (clock - elapsed_clockcounts);
-
-  //printf("clock: %" PRIu64 " prev_clockcounts: %" PRIu64 " clock - prev_clockcounts: %" PRIu64 "\n", clock, prev_clockcounts, (clock - prev_clockcounts));
-  //printf("stalls: %.0f prev_stalls: %.0f stalls - prev_stalls: %.0f\n",
-  //    stalls, prev_stalls, (stalls - prev_stalls));
-  //printf("stall_rate: %f\n", stall_rate);
-
-  //prev_cycles = cycles;
-  elapsed_stalls = stalls;
-  elapsed_clockcounts = clock;
-
-  err = perfmon_startCounters();
-  if (err < 0) {
-    LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
-            (-1 * err) - 1);
-    perfmon_finalize();
-    topology_finalize();
-    exit(-1);
-    //return 1;
-  }
-
-  return stall_rate;
-}
-
-double get_stall_rate_v2() {
-  //int i, j;
-  double result = 0.0;
-
-  //static double prev_cycles = 0;
-  static double prev_stalls = 0;
+  //static double prev_stalls = 0;
   static uint64_t prev_clockcounts = 0;
+  static std::vector<double> prev_stalls(active_cpus, 0.0);
+
+  std::vector<double> stalls(active_cpus, 0.0);
+  std::vector<double> stall_rate(active_cpus);
 
   // Stop all counters in the previously started event set before doing a read.
   err = perfmon_stopCounters();
@@ -274,56 +209,35 @@ double get_stall_rate_v2() {
     exit(-1);
   }
 
-  // Read the result of every thread/CPU for all events in estr.
-  // For now just read/print for the active cores only, actually just one core at the moment!
-  // double cycles = 0;
-  double stalls = 0;
-  //j = 0;
-  // char* ptr = NULL;
-  //Results depending on the architecture!
-  if (info->isIntel == 1) {
-    //ptr = strtok(intel_estr, ",");
-    // ptr = intel_estr;
-  } else if (info->isIntel == 0) {
-    //ptr = strtok(amd_estr, ",");
-    // ptr = amd_estr;
-  } else {
-    LDEBUG(
-        "Error: Something went wrong, can't get the measurements at the moment!\n");
-    exit(-1);
+  // Read the result of every active thread/CPU for all events in estr.
+
+  for (i = 0; i < active_cpus; i++) {
+    result = perfmon_getResult(gid, 0, i);
+    stalls.at(i) = result;
+    //printf("Measurement result at CPU %d: %f\n", cpus[i], result);
   }
 
-  //while (ptr != NULL) {
-  //for (i = 0; i < active_cpus; i++) {
-  //result = perfmon_getResult(gid, j, i);
-  //if (j == 0) {
-  //  cycles += result;
-  //} else {
-  //stalls += result;
-  //}
-  //printf("Measurement result for event set %s at CPU %d: %f\n", ptr,
-  //    cpus[i], result);
-  //}
-  //  ptr = strtok(NULL, ",");
-  //  j++;
-  //}
-
-  result = perfmon_getResult(gid, 0, 0);
-  stalls += result;
-
   uint64_t clock = readtsc();  // read clock
-  //double stall_rate = (stalls - prev_stalls) / (cycles - prev_cycles);
-  stalls = stalls / active_cpus;
-  double stall_rate = ((double) (stalls - prev_stalls))
-      / (clock - prev_clockcounts);
 
-  //printf("clock: %" PRIu64 " prev_clockcounts: %" PRIu64 " clock - prev_clockcounts: %" PRIu64 "\n", clock, prev_clockcounts, (clock - prev_clockcounts));
-  //printf("stalls: %.0f prev_stalls: %.0f stalls - prev_stalls: %.0f\n",
-  //    stalls, prev_stalls, (stalls - prev_stalls));
-  //printf("stall_rate: %f\n", stall_rate);
+  for (i = 0; i < active_cpus; i++) {
+
+    stall_rate.at(i) = ((double) (stalls.at(i) - prev_stalls.at(i)))
+        / (clock - prev_clockcounts);
+
+    /*printf(
+     "clock: %" PRIu64 " prev_clockcounts: %" PRIu64 " clock - prev_clockcounts: %" PRIu64 "\n",
+     clock, prev_clockcounts, (clock - prev_clockcounts));
+     printf("stalls: %.0f prev_stalls: %.0f stalls - prev_stalls: %.0f\n",
+     stalls.at(i), prev_stalls.at(i), (stalls.at(i) - prev_stalls.at(i)));
+     printf("stall_rate: %.10f\n", stall_rate.at(i));*/
+  }
+  //printf("================================================================\n");
 
   //prev_cycles = cycles;
-  prev_stalls = stalls;
+  for (i = 0; i < active_cpus; i++) {
+    prev_stalls.at(i) = stalls.at(i);
+  }
+
   prev_clockcounts = clock;
 
   err = perfmon_startCounters();
@@ -360,47 +274,69 @@ void stop_all_counters() {
 }
 
 // samples stall rate multiple times and filters outliers
-double get_average_stall_rate(size_t num_measurements,
-                              useconds_t usec_between_measurements,
-                              size_t num_outliers_to_filter) {
+std::vector<double> get_average_stall_rate(int num_measurements,
+                                           useconds_t usec_between_measurements,
+                                           int num_outliers_to_filter) {
   //return 0.0;
-  std::vector<double> measurements(num_measurements);
+  std::vector<std::vector<double> > measurements(
+      active_cpus, std::vector<double>(num_measurements));
+
+  std::vector<double> stall_rate;
 
   //throw away a measurement, just because
-  //get_stall_rate();
-  get_stall_rate_v2();
+  get_stall_rate();
   usleep(usec_between_measurements);
 
   // do N measurements, T usec apart
-  for (size_t i = 0; i < num_measurements; i++) {
-    //measurements[i] = get_stall_rate();
-    measurements[i] = get_stall_rate_v2();
-    //unstickymem_log(measurements[i], i);
+  int j, i;
+  for (i = 0; i < num_measurements; i++) {
+    stall_rate = get_stall_rate();
+    for (j = 0; j < active_cpus; j++) {
+      measurements.at(j).at(i) = stall_rate.at(j);
+    }
     usleep(usec_between_measurements);
   }
 
-  /*for (auto m : measurements) {
-   std::cout << m << " ";
+  //for debugging purposes!!
+  /*printf("Before Sorting\n");
+   for (j = 0; j < active_cpus; j++) {
+   printf("Measurements for CPU %d: ", j);
+   for (i = 0; i < num_measurements; i++) {
+   printf("%d: %1.10lf ", i, measurements.at(j).at(i));
    }
-   std::cout << std::endl;*/
+   printf("\n");
+   }
+   printf("\n");*/
 
   // filter outliers
-  std::sort(measurements.begin(), measurements.end());
-  measurements.erase(measurements.end() - num_outliers_to_filter,
-                     measurements.end());
-  measurements.erase(measurements.begin(),
-                     measurements.begin() + num_outliers_to_filter);
+  std::vector<double> average_stall_rate(active_cpus);
 
-  //for logging individual measurements!
-  /*int i = 0;
-   for (auto m : measurements) {
-   unstickymem_log(i, m);
-   i++;
-   }*/
+  for (j = 0; j < active_cpus; j++) {
+    std::sort(measurements.at(j).begin(), measurements.at(j).end());
+    measurements.at(j).erase(measurements.at(j).end() - num_outliers_to_filter,
+                             measurements.at(j).end());
+    measurements.at(j).erase(
+        measurements.at(j).begin(),
+        measurements.at(j).begin() + num_outliers_to_filter);
 
-  // return the average
-  double sum = std::accumulate(measurements.begin(), measurements.end(), 0.0);
-  return sum / measurements.size();
+    double sum = std::accumulate(measurements.at(j).begin(),
+                                 measurements.at(j).end(), 0.0);
+    average_stall_rate.at(j) = sum / measurements.at(j).size();
+  }
+
+  //for debugging purposes!!
+  /* printf("After Sorting\n");
+   for (j = 0; j < active_cpus; j++) {
+   printf("Measurements for App %d: ", j);
+   for (i = 0; i < (num_measurements - (num_outliers_to_filter * 2)); i++) {
+   printf("%d: %1.10lf ", i, measurements.at(j).at(i));
+   }
+   printf("\n");
+   }
+   printf("\n");*/
+
+  // return the average stall rate in a vector
+  return average_stall_rate;
 }
 
 #if defined(__unix__) || defined(__linux__)
