@@ -1,11 +1,14 @@
 #include <iostream>
 #include <sstream>
 
-#include "include/bw-manager.hpp"
-#include "include/performancecounters.hpp"
+#include "include/BwManager.hpp"
 #include "include/Logger.hpp"
+#include "include/PerformanceCounters.hpp"
+#include "include/MySharedMemory.hpp"
+#include "include/PagePlacement.hpp"
 
 bool MONITORED_CORES = false;
+int WORKER_NODE = 1;
 
 static bool is_initialized = false;
 
@@ -68,6 +71,29 @@ void read_config(void) {
 
 void start_bw_manager() {
 
+  //First read the memory segments to be moved
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+
+  LINFOF("Number of Segments: %lu", mem_segments.size());
+
+  /*for (int i = 0; i < mem_segments.size(); i++) {
+   printf(
+   "processID: %d [PageAlignedStartAddress: %p PageAlignedLength: %lu PageCount: %lu] \n",
+   mem_segments.at(i).processID,
+   mem_segments.at(i).pageAlignedStartAddress,
+   mem_segments.at(i).pageAlignedLength,
+   mem_segments.at(i).pageAlignedLength / 4096);
+   }*/
+
+  for (double i = 0; i <= 100; i += ADAPTATION_STEP) {
+    LINFOF("Going to check a ratio of %lf", i);
+    place_all_pages(mem_segments, i);
+    sleep(5);
+  }
+
+  destroy_shared_memory();
+  exit(1);
+
   std::vector<double> prev_stall_rate(active_cpus,
                                       std::numeric_limits<double>::infinity());
   std::vector<double> best_stall_rate(active_cpus,
@@ -91,10 +117,10 @@ void start_bw_manager() {
 int main(int argc, char **argv) {
 
   // parse and display the configuration
-  read_config();
+  //read_config();
 
   // initialize likwid
-  initialize_likwid();
+  //initialize_likwid();
 
   is_initialized = true;
   LDEBUG("Initialized");
@@ -102,7 +128,7 @@ int main(int argc, char **argv) {
   start_bw_manager();
 
   // stop all the counters
-  stop_all_counters();
+  //stop_all_counters();
   LINFO("Finalized");
 
   return 0;

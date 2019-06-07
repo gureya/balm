@@ -9,8 +9,24 @@
 #define INCLUDE_PERFORMANCECOUNTERS_HPP_
 
 #include <cstdint>
+#include <cstddef>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <cstdint>
 
-#include <string>
+#include <likwid.h>
+
+#include <numa.h>
+#include <numaif.h>
+
+//format specifiers for the intN_t types
+#include <inttypes.h>
+
+#include "include/BwManager.hpp"
+#include "include/Logger.hpp"
 
 void initialize_likwid();
 

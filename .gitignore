@@ -176,7 +176,7 @@ cmake_uninstall.cmake
 # generated libraries
 
 # generated executables
-bw-manager
+BwManager
 
 # .txt files
 *.txt

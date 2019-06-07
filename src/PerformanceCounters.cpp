@@ -4,24 +4,7 @@
  *  Created on: May 31, 2019
  *      Author: david
  */
-#include <cstdint>
-#include <cstddef>
-#include <iostream>
-#include <cstring>
-#include <vector>
-#include <algorithm>
-#include <numeric>
-#include "include/bw-manager.hpp"
-#include "include/performancecounters.hpp"
-#include "include/Logger.hpp"
-
-#include <likwid.h>
-
-#include <numa.h>
-#include <numaif.h>
-
-//format specifiers for the intN_t types
-#include <inttypes.h>
+#include "include/PerformanceCounters.hpp"
 
 static bool initiatialized = false;
 
