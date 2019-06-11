@@ -8,7 +8,12 @@
 #include "include/PagePlacement.hpp"
 
 bool MONITORED_CORES = false;
+bool BWMAN_MODE = false;
+bool FIXED_RATIO = false;
+
 int WORKER_NODE = 1;
+int bwman_mode_value = 0;  // 0 - adaptive, 1 - fixed
+int fixed_ratio_value = 0;
 
 static bool is_initialized = false;
 
@@ -55,18 +60,28 @@ void read_config(void) {
 
     active_cpus = BWMAN_CORES.size();
 
-  }
-
-  else {
+  } else {
     LINFO("At least provide 1 monitored core!");
     exit(1);
   }
 
-  //check is the monitored cores vector is empty
+  //check if the monitored cores vector is empty
   if (BWMAN_CORES.empty()) {
     LINFO("BWMAN_CORES vector is empty!");
     exit(1);
   }
+
+  BWMAN_MODE = getenv("BWMAN_MODE") != nullptr;
+  if (BWMAN_MODE) {
+    bwman_mode_value = std::stoi(getenv("BWMAN_MODE"));
+  }
+  LINFOF("BWMAN_MODE: %d", bwman_mode_value);
+
+  FIXED_RATIO = getenv("FIXED_RATIO") != nullptr;
+  if (FIXED_RATIO) {
+    fixed_ratio_value = std::stoi(getenv("FIXED_RATIO"));
+  }
+  LINFOF("FIXED_RATIO: %d", fixed_ratio_value);
 
 }
 
@@ -86,74 +101,90 @@ void start_bw_manager() {
    mem_segments.at(i).pageAlignedLength / 4096);
    }*/
 
-  std::vector<double> prev_stall_rate(active_cpus,
-                                      std::numeric_limits<double>::infinity());
-  std::vector<double> best_stall_rate(active_cpus,
-                                      std::numeric_limits<double>::infinity());
-  std::vector<double> stall_rate(active_cpus);
-  std::vector<double> interval_diff(active_cpus);
-  std::vector<double> minimum_interference(active_cpus);
+  switch (bwman_mode_value) {
+    case 0: {
+      std::vector<double> prev_stall_rate(
+          active_cpus, std::numeric_limits<double>::infinity());
+      std::vector<double> best_stall_rate(
+          active_cpus, std::numeric_limits<double>::infinity());
+      std::vector<double> stall_rate(active_cpus);
+      std::vector<double> interval_diff(active_cpus);
+      std::vector<double> minimum_interference(active_cpus);
 
-  int i, j;
+      int i, j;
 
-  for (i = 0; i <= 100; i += ADAPTATION_STEP) {
+      for (i = 0; i <= 100; i += ADAPTATION_STEP) {
 
-    LINFOF("Going to check a ratio of %d", i);
+        LINFOF("Going to check a ratio of %d", i);
 
-    //First check the stall rate of the initial weights without moving pages!
-    if (i != 0) {
-      place_all_pages(mem_segments, i);
+        //First check the stall rate of the initial weights without moving pages!
+        if (i != 0) {
+          place_all_pages(mem_segments, i);
+        }
+
+        //Measure the stall_rate of the applications
+        stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                            _num_poll_outliers);
+
+        for (j = 0; j < active_cpus; j++) {
+
+          //compute the minimum stall rate @ app
+          interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
+          //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
+          minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
+          LINFOF(
+              "App: %d Ratio: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+              j, i, stall_rate.at(j), prev_stall_rate.at(j),
+              best_stall_rate.at(j), interval_diff.at(j),
+              minimum_interference.at(j));
+
+          best_stall_rate.at(j) = std::min(best_stall_rate.at(j),
+                                           stall_rate.at(j));
+        }
+
+        // Assume App 0 is memory intensive and App 1 is compute intensive
+        // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
+
+        if (interval_diff.at(1) > minimum_interference.at(1)) {
+          LINFO(
+              "Exceeded the Minimal allowable interference, Going one step back!");
+          //before stopping go one step back and break
+          place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+          LINFOF("Final Ratio: %d", (i - ADAPTATION_STEP));
+          break;
+        }
+
+        else if (stall_rate.at(0) > best_stall_rate.at(0)) {
+          LINFO("Performance degradation: Going one step back before breaking!");
+          //before stopping go one step back and break
+          place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+          LINFOF("Final Ratio: %d", (i - ADAPTATION_STEP));
+          break;
+        }
+
+        else {
+          //continue climbing!!
+        }
+
+        //At the end update previous stall rate to the current stall rate!
+        for (j = 0; j < active_cpus; j++) {
+          prev_stall_rate.at(j) = stall_rate.at(j);
+        }
+
+      }
+
+      LINFO("My work here is done! Enjoy the speedup");
     }
-
-    //Measure the stall_rate of the applications
-    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                        _num_poll_outliers);
-
-    for (j = 0; j < active_cpus; j++) {
-
-      //compute the minimum stall rate @ app
-      interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
-      //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
-      minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
-      LINFOF(
-          "App: %d Ratio: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
-          j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
-          interval_diff.at(j), minimum_interference.at(j));
-
-      best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
-    }
-
-    // Assume App 0 is memory intensive and App 1 is compute intensive
-    // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
-
-    if (interval_diff.at(1) > minimum_interference.at(1)) {
-      LINFO("Exceeded the Minimal allowable interference, Going one step back!");
-      //before stopping go one step back and break
-      place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-      LINFOF("Final Ratio: %d", (i - ADAPTATION_STEP));
       break;
+    case 1: {
+      LINFOF("Going to check a fixed ratio of %d", fixed_ratio_value);
+      place_all_pages(mem_segments, fixed_ratio_value);
     }
-
-    else if (stall_rate.at(0) > best_stall_rate.at(0)) {
-      LINFO("Performance degradation: Going one step back before breaking!");
-      //before stopping go one step back and break
-      place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-      LINFOF("Final Ratio: %d", (i - ADAPTATION_STEP));
       break;
-    }
-
-    else {
-      //continue climbing!!
-    }
-
-    //At the end update previous stall rate to the current stall rate!
-    for (j = 0; j < active_cpus; j++) {
-      prev_stall_rate.at(j) = stall_rate.at(j);
-    }
-
+    default:
+      LINFO("Mode has not been specified!")
+      ;
   }
-
-  LINFO("My work here is done! Enjoy the speedup");
 
   //Destroy the shared memory be4 exiting!
   destroy_shared_memory();
