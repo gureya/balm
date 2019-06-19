@@ -9,88 +9,66 @@
 #include "include/PagePlacement.hpp"
 #include "include/Logger.hpp"
 
+#include <numeric> //vector sum
+
 static int pagesize;
 
+//debugging function
+void get_node_mappings(int page_count, int *nodes) {
+
+  //Test weights are reflected on the node mappings!
+  std::vector<int> node_count(MAX_NODES, 0);
+  int i;
+  for (i = 0; i < page_count; i++) {
+    int node_number = nodes[i];
+    if (node_number == 0) {
+      node_count.at(0) += 1;
+    } else if (node_number == 1) {
+      node_count.at(1) += 1;
+    } else if (node_number == 2) {
+      node_count.at(2) += 1;
+    } else if (node_number == 3) {
+      node_count.at(3) += 1;
+    } else if (node_number == 4) {
+      node_count.at(4) += 1;
+    } else if (node_number == 5) {
+      node_count.at(5) += 1;
+    } else if (node_number == 6) {
+      node_count.at(6) += 1;
+    } else if (node_number == 7) {
+      node_count.at(7) += 1;
+    } else {
+      printf("Invalid Node Number %d", node_number);
+    }
+  }
+
+  int sum_of_elems = std::accumulate(node_count.begin(), node_count.end(), 0);
+  printf("Total pages: %d\n", sum_of_elems);
+  double sum = 0.0;
+  for (i = 0; i < MAX_NODES; i++) {
+    double weight = (((double) node_count.at(i) / (double) sum_of_elems) * 100);
+    printf("Node %d count %d Weight %.2f\n", i, node_count.at(i), weight);
+    sum += weight;
+  }
+  printf("Total Weight: %.2f\n", sum);
+
+}
+
 void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
-  for (int i = 0; i < mem_segments.size(); i++) {
-    /*move_pages_remote(mem_segments.at(i).processID,
-     mem_segments.at(i).pageAlignedStartAddress,
-     mem_segments.at(i).pageAlignedLength, r);*/
-    dombind(mem_segments.at(i).pageAlignedStartAddress,
-            mem_segments.at(i).pageAlignedLength, r);
+  for (size_t i = 0; i < mem_segments.size(); i++) {
+    move_pages_remote(mem_segments.at(i).processID,
+                      mem_segments.at(i).pageAlignedStartAddress,
+                      mem_segments.at(i).pageAlignedLength, r);
   }
 }
 
-// interleave pages using the weights with the mbind() system call
-void dombind(void *addr, unsigned long len, double remote_ratio) {
-
-  size_t size = len;
-  void *start = addr;
-  int i;
-  pagesize = numa_pagesize();
-
-  double weights[MAX_NODES];  // the weights should be in ascending order
-
-  if (remote_ratio <= 50) {
-    weights[0] = remote_ratio;
-    weights[1] = 100 - remote_ratio;
-  } else {
-    weights[0] = 100 - remote_ratio;
-    weights[1] = remote_ratio;
+//initial page placement with weighted interleave
+void place_all_pages(std::vector<MySharedMemory> mem_segments) {
+  for (size_t i = 0; i < mem_segments.size(); i++) {
+    move_pages_remote(mem_segments.at(i).processID,
+                      mem_segments.at(i).pageAlignedStartAddress,
+                      mem_segments.at(i).pageAlignedLength);
   }
-
-  // nodes that can still receive pages
-  struct bitmask *node_set = numa_bitmask_alloc(MAX_NODES);  // numa_allocate_nodemask();
-  numa_bitmask_setall(node_set);
-
-  float w = 0;  // weight that has already been allocated among the nodes that can still receive pages
-  int a = MAX_NODES;  // number of nodes which can still receive pages
-
-  size_t total_size = 0;  // total size interleaved so far
-  size_t my_size = 0;
-
-  size_t remaining_a;
-
-  for (i = 0; i < MAX_NODES; ++i) {
-    if (total_size == size) {
-      break;
-    }
-
-    // b = size that remains to allocate in the next node with smallest beta
-    float b = weights[i] - w;
-    printf("i: %d\tb: %.2f\ta:%d\n", i, b, a);
-
-    my_size = a * (b / 100) * size;
-    printf("my_size_a: %ld\n", my_size);
-
-    // round up to multiple of the page size
-    my_size = PAGE_ALIGN_UP(my_size);
-
-    remaining_a = size - total_size;
-    if (my_size > remaining_a) {
-      my_size = remaining_a;
-    }
-
-    total_size += my_size;
-    printf("my_size_b: %zu\n", my_size);
-
-    // only interleave if memory is in the region
-    if (my_size != 0) {
-      DIEIF(
-          mbind(start, my_size, MPOL_INTERLEAVE, node_set->maskp, node_set->size + 1, MPOL_MF_MOVE_ALL | MPOL_MF_STRICT) != 0,
-          "mbind interleave failed");
-    }
-
-    start =
-        reinterpret_cast<void*>(reinterpret_cast<intptr_t>(start) + my_size);  // increment base to a new location
-    a--;  // one less node where to allocate pages
-    w = weights[i];  // we update the size already allocated in the remaining nodes
-    if (numa_bitmask_isbitset(node_set, i)) {
-      numa_bitmask_clearbit(node_set, i);  // remove node i from the set of remaining nodes
-    }
-  }
-
-  numa_bitmask_free(node_set);
 }
 
 //place pages with the move_pages system call
@@ -99,6 +77,8 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
                        double remote_ratio) {
 
   pagesize = numa_pagesize();
+
+  //LINFOF("numa_pagesize: %d", pagesize);
 
   char *pages;
 
@@ -125,7 +105,7 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
   pages = (char *) start;
 
   //set the remote and local nodes here
-  if (WORKER_NODE == 2) {
+  if (BWMAN_WORKERS == 2) {
     remote_node = 0;
     local_node = 0;
   } else {
@@ -179,6 +159,103 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
   free(addr);
   free(status);
   free(nodes);
+}
 
+//initial page placement with weighted interleave
+void move_pages_remote(pid_t pid, void *start, unsigned long len) {
+
+  pagesize = numa_pagesize();
+
+  char *pages;
+
+  int i, j, rc;
+
+  void **addr;
+  int *status;
+  int *nodes;
+
+  int page_count = len / pagesize;
+
+  addr = (void **) malloc(sizeof(char *) * page_count);
+  status = (int *) malloc(page_count * sizeof(int *));
+  nodes = (int *) malloc(page_count * sizeof(int *));
+
+  if (!start || !addr || !status || !nodes) {
+    LINFO("Unable to allocate memory");
+    exit(1);
+  }
+
+  pages = (char *) start;
+
+  //uniform distribution memory allocation (using the bwap style format)
+  //first set the page addresses
+  for (i = 0; i < page_count; i++) {
+    addr[i] = pages + i * pagesize;
+  }
+
+  //set the page distribution using a weighted version
+  double i_p;  //interleaved_pages
+  double w = 0;  // weight that has already been allocated among the nodes that can still receive pages
+  int a = MAX_NODES;  // number of nodes which can still receive pages
+  int i_k = 0;  //lower_bound for the pages
+  int r_pages = 0;  //remaining pages
+  int my_node;  //the node of a page
+
+  //create a vector of node id's
+  std::vector<int> node_ids;
+  for (i = 0; i < MAX_NODES; i++) {
+    node_ids.push_back(BWMAN_WEIGHTS.at(i).second);
+  }
+
+  for (i = 0; i < MAX_NODES; i++) {
+
+    double b = BWMAN_WEIGHTS.at(i).first - w;
+    i_p = a * (b / 100) * page_count;
+
+    r_pages = page_count - i_k;
+    if (i_p > r_pages) {
+      i_p = r_pages;
+    }
+
+    /*for (int k = 0; k < a; k++) {
+     printf("node id: %d\t", node_ids.at(k));
+     }
+     printf("\n");
+
+     printf("i: %d b: %.2f i_p: %.2f i_k: %d end: %d a: %d r_pages: %d\n", i, b,
+     i_p, i_k, (i_k + (int) i_p), a, r_pages);*/
+
+    if (i_k == page_count) {
+      break;
+    }
+
+    if (i_p != 0) {
+      for (j = i_k; j < (i_k + i_p); j++) {
+        my_node = j % a;
+        nodes[j] = node_ids.at(my_node);
+      }
+    }
+
+    node_ids.erase(node_ids.begin());
+    a--;
+    w = BWMAN_WEIGHTS.at(i).first;
+    i_k += i_p;
+
+  }
+
+  /* for (i = 0; i < page_count; i++) {
+   printf("%d: %d\n", i, nodes[i]);
+   }*/
+
+  //get_node_mappings(page_count, nodes);
+  rc = move_pages(pid, page_count, addr, nodes, status, MPOL_MF_MOVE);
+  if (rc < 0 && errno != ENOENT) {
+    perror("move_pages");
+    exit(1);
+  }
+
+  free(addr);
+  free(status);
+  free(nodes);
 }
 

@@ -37,7 +37,7 @@ std::vector<MySharedMemory> get_shared_memory() {
     MyVector *myvector = segment.find<MyVector>("MyVector").first;
 
     //print the segments
-    for (int i = 0; i < myvector->size(); i++) {
+    for (size_t i = 0; i < myvector->size(); i++) {
       MySharedMemory sharedmemory(myvector->at(i).pageAlignedStartAddress,
                                   myvector->at(i).pageAlignedLength,
                                   myvector->at(i).processID);
