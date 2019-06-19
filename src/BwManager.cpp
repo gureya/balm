@@ -126,14 +126,14 @@ void start_bw_manager() {
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
 
-  /*for (int i = 0; i < mem_segments.size(); i++) {
-   printf(
-   "processID: %d [PageAlignedStartAddress: %p PageAlignedLength: %lu PageCount: %lu] \n",
-   mem_segments.at(i).processID,
-   mem_segments.at(i).pageAlignedStartAddress,
-   mem_segments.at(i).pageAlignedLength,
-   mem_segments.at(i).pageAlignedLength / 4096);
-   }*/
+  for (size_t i = 0; i < mem_segments.size(); i++) {
+    printf(
+        "processID: %d [PageAlignedStartAddress: %p PageAlignedLength: %lu PageCount: %lu] \n",
+        mem_segments.at(i).processID,
+        mem_segments.at(i).pageAlignedStartAddress,
+        mem_segments.at(i).pageAlignedLength,
+        mem_segments.at(i).pageAlignedLength / 4096);
+  }
 
   //First enforce weighted interleave
   place_all_pages(mem_segments);

@@ -247,12 +247,19 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len) {
    printf("%d: %d\n", i, nodes[i]);
    }*/
 
-  //get_node_mappings(page_count, nodes);
-  rc = move_pages(pid, page_count, addr, nodes, status, MPOL_MF_MOVE);
-  if (rc < 0 && errno != ENOENT) {
-    perror("move_pages");
-    exit(1);
+  for (i = 0; i < page_count; i++) {
+    if (nodes[i] < 0 || nodes[i] > MAX_NODES) {
+      printf("Page %d node %d", i, nodes[i]);
+      exit(1);
+    }
   }
+
+  //get_node_mappings(page_count, nodes);
+  /*rc = move_pages(pid, page_count, addr, nodes, status, MPOL_MF_MOVE);
+   if (rc < 0 && errno != ENOENT) {
+   perror("move_pages");
+   exit(1);
+   }*/
 
   free(addr);
   free(status);
