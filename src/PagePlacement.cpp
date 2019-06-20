@@ -44,13 +44,11 @@ void get_new_weights(double s) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
           BWMAN_WEIGHTS_temp.at(i).first = round(
               (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
-          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
           BWMAN_WEIGHTS_temp.at(i).first = round(
               (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
-          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
@@ -61,13 +59,11 @@ void get_new_weights(double s) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
           BWMAN_WEIGHTS_temp.at(i).first = round(
               (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
-          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
           BWMAN_WEIGHTS_temp.at(i).first = round(
               (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
-          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
@@ -78,13 +74,11 @@ void get_new_weights(double s) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
           BWMAN_WEIGHTS_temp.at(i).first = round(
               (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
-          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
           BWMAN_WEIGHTS_temp.at(i).first = round(
               (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
-          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
@@ -96,13 +90,11 @@ void get_new_weights(double s) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
           BWMAN_WEIGHTS_temp.at(i).first = round(
               (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
-          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
           BWMAN_WEIGHTS_temp.at(i).first = round(
               (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
-          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
@@ -117,14 +109,14 @@ void get_new_weights(double s) {
   //sort the vector in ascending order just incase it gets unordered
   sort(BWMAN_WEIGHTS_temp.begin(), BWMAN_WEIGHTS_temp.end());
 
-  //printf("%.2f\n", sum);
+  /*printf("%.2f\n", sum);
 
-  printf("New Weights: \t");
-  for (i = 0; i < MAX_NODES; i++) {
-    printf("%d : %.2f\t", BWMAN_WEIGHTS_temp.at(i).second,
-           BWMAN_WEIGHTS_temp.at(i).first);
-  }
-  printf("\n");
+   printf("New Weights: \t");
+   for (i = 0; i < MAX_NODES; i++) {
+   printf("%d : %.2f\t", BWMAN_WEIGHTS_temp.at(i).second,
+   BWMAN_WEIGHTS_temp.at(i).first);
+   }
+   printf("\n");*/
 
   if ((check_sum(BWMAN_WEIGHTS_temp)) != 100) {
     printf("**Sum of New weights must be equal to 100, sum=%d!**\n",
@@ -132,8 +124,8 @@ void get_new_weights(double s) {
     exit(-1);
   }
 
-  printf(
-      "===========================================================================\n");
+  /*printf(
+   "===========================================================================\n");*/
 }
 
 //debugging function

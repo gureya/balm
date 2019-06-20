@@ -119,14 +119,14 @@ void start_bw_manager() {
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
 
-  for (size_t i = 0; i < mem_segments.size(); i++) {
-    printf(
-        "processID: %d [PageAlignedStartAddress: %p PageAlignedLength: %lu PageCount: %lu] \n",
-        mem_segments.at(i).processID,
-        mem_segments.at(i).pageAlignedStartAddress,
-        mem_segments.at(i).pageAlignedLength,
-        mem_segments.at(i).pageAlignedLength / 4096);
-  }
+  /*for (size_t i = 0; i < mem_segments.size(); i++) {
+   printf(
+   "processID: %d [PageAlignedStartAddress: %p PageAlignedLength: %lu PageCount: %lu] \n",
+   mem_segments.at(i).processID,
+   mem_segments.at(i).pageAlignedStartAddress,
+   mem_segments.at(i).pageAlignedLength,
+   mem_segments.at(i).pageAlignedLength / 4096);
+   }*/
 
   //First enforce weighted interleave
   /*double i;
@@ -301,10 +301,10 @@ void read_weights(char filename[]) {
   //sort the vector in ascending order
   sort(BWMAN_WEIGHTS.begin(), BWMAN_WEIGHTS.end());
 
-  for (j = 0; j < MAX_NODES; j++) {
-    printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(j).second,
-           BWMAN_WEIGHTS.at(j).first);
-  }
+  /*for (j = 0; j < MAX_NODES; j++) {
+   printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(j).second,
+   BWMAN_WEIGHTS.at(j).first);
+   }*/
 
   fclose(fp);
   if (line)
