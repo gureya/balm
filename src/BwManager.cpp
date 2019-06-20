@@ -1,15 +1,8 @@
 #include <iostream>
 #include <sstream>
 
-#include <iterator>
-
 #include <fstream>
 #include <string>
-
-//for sorting the map!
-#include <set>
-#include <algorithm>
-#include <functional>
 
 #include "include/BwManager.hpp"
 #include "include/Logger.hpp"
@@ -136,7 +129,16 @@ void start_bw_manager() {
   }
 
   //First enforce weighted interleave
-  place_all_pages(mem_segments);
+  double i;
+  bool terminate = false;
+  for (i = 0; !terminate; i += ADAPTATION_STEP) {
+    if (i > sum_nww) {
+      i = sum_nww;
+      terminate = true;
+    }
+    LINFOF("Going to check a ratio of %.2f", i);
+    place_all_pages(mem_segments, i);
+  }
   /*switch (bwman_mode_value) {
    case 0: {
    std::vector<double> prev_stall_rate(

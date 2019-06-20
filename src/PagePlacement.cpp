@@ -12,6 +12,129 @@
 #include <numeric> //vector sum
 
 static int pagesize;
+bool weight_initialized = false;
+
+//temporary vector of weights initialized to zero
+std::vector<std::pair<double, int>> BWMAN_WEIGHTS_temp(MAX_NODES,
+                                                       std::make_pair(0, 0));
+
+int check_sum(std::vector<std::pair<double, int>> n) {
+  double sum = 0;
+  int i = 0;
+
+  for (i = 0; i < MAX_NODES; i++) {
+    sum += n.at(i).first;
+  }
+  return std::lround(sum);
+}
+
+// Calculate the new weights with respect to the new ratio!
+void get_new_weights(double s) {
+
+  int i = 0;
+  double new_s = 0;
+  new_s = sum_ww + s;
+  double sum = 0;
+
+  for (i = 0; i < MAX_NODES; i++) {
+    switch (BWMAN_WORKERS) {
+      case 1:
+        // workers: 0
+        if (BWMAN_WEIGHTS.at(i).second == 0) {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        } else {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
+          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        }
+        break;
+      case 2:
+        // workers: 0, 1
+        if (BWMAN_WEIGHTS.at(i).second == 0
+            || BWMAN_WEIGHTS.at(i).second == 1) {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        } else {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
+          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        }
+        break;
+      case 3:
+        // workers: 1,2,3
+        if (BWMAN_WEIGHTS.at(i).second == 1 || BWMAN_WEIGHTS.at(i).second == 2
+            || BWMAN_WEIGHTS.at(i).second == 3) {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        } else {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
+          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        }
+        break;
+      case 4:
+        // workers: 0,1,2,3
+        if (BWMAN_WEIGHTS.at(i).second == 0 || BWMAN_WEIGHTS.at(i).second == 1
+            || BWMAN_WEIGHTS.at(i).second == 2
+            || BWMAN_WEIGHTS.at(i).second == 3) {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        } else {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
+          //printf("%.2f\t", BWMAN_WEIGHTS_temp.at(i).first);
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        }
+        break;
+      default:
+        LINFOF("Sorry, %d Worker nodes is not supported at the moment!\n",
+               BWMAN_WORKERS)
+        ;
+        exit(-1);
+    }
+  }
+
+  //sort the vector in ascending order just incase it gets unordered
+  sort(BWMAN_WEIGHTS_temp.begin(), BWMAN_WEIGHTS_temp.end());
+
+  //printf("%.2f\n", sum);
+
+  printf("New Weights: \t");
+  for (i = 0; i < MAX_NODES; i++) {
+    printf("%d : %.2f\t", BWMAN_WEIGHTS_temp.at(i).second,
+           BWMAN_WEIGHTS_temp.at(i).first);
+  }
+  printf("\n");
+
+  if ((check_sum(BWMAN_WEIGHTS_temp)) != 100) {
+    printf("**Sum of New weights must be equal to 100, sum=%d!**\n",
+           check_sum(BWMAN_WEIGHTS_temp));
+    exit(-1);
+  }
+
+  printf(
+      "===========================================================================\n");
+}
 
 //debugging function
 void get_node_mappings(int page_count, int *nodes) {
@@ -60,109 +183,116 @@ void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
                       mem_segments.at(i).pageAlignedStartAddress,
                       mem_segments.at(i).pageAlignedLength, r);
   }
+  weight_initialized = false;
 }
 
 //initial page placement with weighted interleave
-void place_all_pages(std::vector<MySharedMemory> mem_segments) {
-  for (size_t i = 0; i < mem_segments.size(); i++) {
-    move_pages_remote(mem_segments.at(i).processID,
-                      mem_segments.at(i).pageAlignedStartAddress,
-                      mem_segments.at(i).pageAlignedLength);
-  }
-}
+/*void place_all_pages(std::vector<MySharedMemory> mem_segments) {
+ for (size_t i = 0; i < mem_segments.size(); i++) {
+ move_pages_remote(mem_segments.at(i).processID,
+ mem_segments.at(i).pageAlignedStartAddress,
+ mem_segments.at(i).pageAlignedLength);
+ }
+ }*
 
-//place pages with the move_pages system call
-//courtesy: https://stackoverflow.com/questions/10989169/numa-memory-page-migration-overhead/11148999
+ //place pages with the move_pages system call
+ //courtesy: https://stackoverflow.com/questions/10989169/numa-memory-page-migration-overhead/11148999
+ void move_pages_remote(pid_t pid, void *start, unsigned long len,
+ double remote_ratio) {
+
+ pagesize = numa_pagesize();
+
+ //LINFOF("numa_pagesize: %d", pagesize);
+
+ char *pages;
+
+ int i, rc;
+
+ void **addr;
+ int *status;
+ int *nodes;
+
+ int page_count = len / pagesize;
+
+ double interleaved_pages;
+ int remote_node, local_node;
+
+ addr = (void **) malloc(sizeof(char *) * page_count);
+ status = (int *) malloc(page_count * sizeof(int *));
+ nodes = (int *) malloc(page_count * sizeof(int *));
+
+ if (!start || !addr || !status || !nodes) {
+ LINFO("Unable to allocate memory");
+ exit(1);
+ }
+
+ pages = (char *) start;
+
+ //set the remote and local nodes here
+ if (BWMAN_WORKERS == 2) {
+ remote_node = 0;
+ local_node = 0;
+ } else {
+ remote_node = 0;
+ local_node = 0;
+ }
+
+ //uniform distribution memory allocation (using the bwap style format)
+ if (remote_ratio <= 50) {
+ interleaved_pages = (remote_ratio / 100 * (double) page_count) * MAX_NODES;
+ //LINFOF("page_count:%d interleaved_pages:%d", page_count, (int) interleaved_pages);
+ for (i = 0; i < page_count; ++i) {
+ addr[i] = pages + i * pagesize;
+ if (i < interleaved_pages) {
+ if (i % 2 == 0) {
+ nodes[i] = local_node;
+ } else {
+ nodes[i] = remote_node;
+ }
+ } else {
+ nodes[i] = local_node;
+ }
+ status[i] = -123;
+ }
+
+ } else {
+ interleaved_pages = ((100 - remote_ratio) / 100 * (double) page_count)
+ * MAX_NODES;
+ //LINFOF("page_count:%d interleaved_pages:%d", page_count, (int) interleaved_pages);
+ for (i = 0; i < page_count; ++i) {
+ addr[i] = pages + i * pagesize;
+ if (i < interleaved_pages) {
+ if (i % 2 == 0) {
+ nodes[i] = local_node;
+ } else {
+ nodes[i] = remote_node;
+ }
+ } else {
+ nodes[i] = remote_node;
+ }
+ status[i] = -123;
+ }
+ }
+
+ rc = move_pages(pid, page_count, addr, nodes, status, MPOL_MF_MOVE);
+ if (rc < 0 && errno != ENOENT) {
+ perror("move_pages");
+ exit(1);
+ }
+
+ free(addr);
+ free(status);
+ free(nodes);
+ }*/
+
+//initial page placement with weighted interleave
 void move_pages_remote(pid_t pid, void *start, unsigned long len,
                        double remote_ratio) {
 
-  pagesize = numa_pagesize();
-
-  //LINFOF("numa_pagesize: %d", pagesize);
-
-  char *pages;
-
-  int i, rc;
-
-  void **addr;
-  int *status;
-  int *nodes;
-
-  int page_count = len / pagesize;
-
-  double interleaved_pages;
-  int remote_node, local_node;
-
-  addr = (void **) malloc(sizeof(char *) * page_count);
-  status = (int *) malloc(page_count * sizeof(int *));
-  nodes = (int *) malloc(page_count * sizeof(int *));
-
-  if (!start || !addr || !status || !nodes) {
-    LINFO("Unable to allocate memory");
-    exit(1);
+  if (!weight_initialized) {
+    get_new_weights(remote_ratio);
+    weight_initialized = true;
   }
-
-  pages = (char *) start;
-
-  //set the remote and local nodes here
-  if (BWMAN_WORKERS == 2) {
-    remote_node = 0;
-    local_node = 0;
-  } else {
-    remote_node = 0;
-    local_node = 0;
-  }
-
-  //uniform distribution memory allocation (using the bwap style format)
-  if (remote_ratio <= 50) {
-    interleaved_pages = (remote_ratio / 100 * (double) page_count) * MAX_NODES;
-    //LINFOF("page_count:%d interleaved_pages:%d", page_count, (int) interleaved_pages);
-    for (i = 0; i < page_count; ++i) {
-      addr[i] = pages + i * pagesize;
-      if (i < interleaved_pages) {
-        if (i % 2 == 0) {
-          nodes[i] = local_node;
-        } else {
-          nodes[i] = remote_node;
-        }
-      } else {
-        nodes[i] = local_node;
-      }
-      status[i] = -123;
-    }
-
-  } else {
-    interleaved_pages = ((100 - remote_ratio) / 100 * (double) page_count)
-        * MAX_NODES;
-    //LINFOF("page_count:%d interleaved_pages:%d", page_count, (int) interleaved_pages);
-    for (i = 0; i < page_count; ++i) {
-      addr[i] = pages + i * pagesize;
-      if (i < interleaved_pages) {
-        if (i % 2 == 0) {
-          nodes[i] = local_node;
-        } else {
-          nodes[i] = remote_node;
-        }
-      } else {
-        nodes[i] = remote_node;
-      }
-      status[i] = -123;
-    }
-  }
-
-  rc = move_pages(pid, page_count, addr, nodes, status, MPOL_MF_MOVE);
-  if (rc < 0 && errno != ENOENT) {
-    perror("move_pages");
-    exit(1);
-  }
-
-  free(addr);
-  free(status);
-  free(nodes);
-}
-
-//initial page placement with weighted interleave
-void move_pages_remote(pid_t pid, void *start, unsigned long len) {
 
   pagesize = numa_pagesize();
 
@@ -205,12 +335,12 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len) {
   //create a vector of node id's
   std::vector<int> node_ids;
   for (i = 0; i < MAX_NODES; i++) {
-    node_ids.push_back(BWMAN_WEIGHTS.at(i).second);
+    node_ids.push_back(BWMAN_WEIGHTS_temp.at(i).second);
   }
 
   for (i = 0; i < MAX_NODES; i++) {
 
-    double b = BWMAN_WEIGHTS.at(i).first - w;
+    double b = BWMAN_WEIGHTS_temp.at(i).first - w;
     i_p = a * (b / 100) * page_count;
 
     r_pages = page_count - i_k;
@@ -239,28 +369,28 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len) {
 
     node_ids.erase(node_ids.begin());
     a--;
-    w = BWMAN_WEIGHTS.at(i).first;
+    w = BWMAN_WEIGHTS_temp.at(i).first;
     i_k += i_p;
 
   }
 
-  /* for (i = 0; i < page_count; i++) {
+  /*for (i = 0; i < page_count; i++) {
    printf("%d: %d\n", i, nodes[i]);
-   }
-
-   for (i = 0; i < page_count; i++) {
-   if (nodes[i] < 0 || nodes[i] > MAX_NODES) {
-   printf("Page %d node %d", i, nodes[i]);
-   exit(1);
-   }
    }*/
 
-  //get_node_mappings(page_count, nodes);
-  rc = move_pages(pid, page_count, addr, nodes, status, MPOL_MF_MOVE);
-  if (rc < 0 && errno != ENOENT) {
-    perror("move_pages");
-    exit(1);
+  for (i = 0; i < page_count; i++) {
+    if (nodes[i] < 0 || nodes[i] > MAX_NODES) {
+      printf("Page %d node %d", i, nodes[i]);
+      exit(1);
+    }
   }
+
+  //get_node_mappings(page_count, nodes);
+  /*rc = move_pages(pid, page_count, addr, nodes, status, MPOL_MF_MOVE);
+   if (rc < 0 && errno != ENOENT) {
+   perror("move_pages");
+   exit(1);
+   }*/
 
   free(addr);
   free(status);

@@ -24,8 +24,7 @@ static const int PAGE_SIZE = sysconf(_SC_PAGESIZE);
 static const int PAGE_MASK = (~(PAGE_SIZE - 1));
 
 void move_pages_remote(pid_t pid, void *addr, unsigned long len, double ratio);
-void move_pages_remote(pid_t pid, void *addr, unsigned long len);
 void place_all_pages(std::vector<MySharedMemory> mem_segments, double ratio);
-void place_all_pages(std::vector<MySharedMemory> mem_segments);  //initial
+void get_new_weights(double s);
 
 #endif /* INCLUDE_PAGEPLACEMENT_HPP_ */
