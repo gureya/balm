@@ -11,6 +11,7 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+find_package(OpenMP REQUIRED)
 
 # require boost program options
 find_package(Boost COMPONENTS program_options REQUIRED)
@@ -29,6 +30,7 @@ target_include_directories(BwManager
 	
 target_link_libraries(BwManager
 	Threads::Threads
+	OpenMP::OpenMP_CXX
   ${CMAKE_DL_LIBS}
   rt
   -rdynamic
