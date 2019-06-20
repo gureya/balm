@@ -176,7 +176,7 @@ void start_bw_manager() {
           //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
           minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
           LINFOF(
-              "App: %d Ratio: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+              "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
               j, i, stall_rate.at(j), prev_stall_rate.at(j),
               best_stall_rate.at(j), interval_diff.at(j),
               minimum_interference.at(j));
