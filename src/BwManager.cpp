@@ -152,6 +152,7 @@ void start_bw_manager() {
 
       double i;
       int j;
+      bool terminate = false;
 
       for (i = 0; !terminate; i += ADAPTATION_STEP) {
 
