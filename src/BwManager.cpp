@@ -119,6 +119,13 @@ void start_bw_manager() {
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
 
+  //some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    exit(EXIT_FAILURE);
+  }
+
   /*for (size_t i = 0; i < mem_segments.size(); i++) {
    printf(
    "processID: %d [PageAlignedStartAddress: %p PageAlignedLength: %lu PageCount: %lu] \n",
