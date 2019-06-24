@@ -158,6 +158,9 @@ void start_bw_manager() {
   double i;
   int j;
   bool terminate = false;
+  
+  get_stall_rate();
+  sleep(_wait_start);
 
   switch (bwman_mode_value) {
 
@@ -289,9 +292,10 @@ void start_bw_manager() {
         if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
           //just make sure that its not something transient...!
           LINFO("Hmm... Is this the best we can do?");
-          if (get_average_stall_rate(_num_polls * 2, _poll_sleep,
-                                     _num_poll_outliers * 2).at(0)
-              > (best_stall_rate.at(0) * 1.001)) {
+          std::vector<double> stall_rate_transient = get_average_stall_rate(_num_polls * 2, _poll_sleep,
+                                     _num_poll_outliers * 2);
+          LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
+          if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
             LINFO(
                 "Performance degradation for App 0: Going one step back before breaking!");
             //before stopping go one step back and break
