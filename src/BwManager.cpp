@@ -158,13 +158,14 @@ void start_bw_manager() {
   double i;
   int j;
   bool terminate = false;
-  
+
   get_stall_rate();
   sleep(_wait_start);
 
   switch (bwman_mode_value) {
 
     case 0: {
+
       LINFO("Running the adaptive-co-scheduled scenario!");
       for (i = 0; !terminate; i += ADAPTATION_STEP) {
 
@@ -201,19 +202,14 @@ void start_bw_manager() {
 
         // Assume App 0 is memory intensive and App 1 is compute intensive
         // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
-
         if (interval_diff.at(1) > minimum_interference.at(1)) {
           LINFO(
               "Exceeded the Minimal allowable interference for App 1, continue climbing!");
-          //before stopping go one step back and break
-          //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-          //LINFOF("Final Ratio: %d", (i - ADAPTATION_STEP));
-          //break;
         }
 
         else if (stall_rate.at(0) > best_stall_rate.at(0)) {
           LINFO(
-              "Performance degradation for App 0: Going one step back before breaking!");
+              "Performance degradation for App 0, Going one step back before breaking!");
           //before stopping go one step back and break
           place_all_pages(mem_segments, (i - ADAPTATION_STEP));
           LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
@@ -221,7 +217,7 @@ void start_bw_manager() {
         }
 
         else {
-          //continue climbing!!
+          LINFO("Performance improvement for App 0, continue climbing");
         }
 
         //At the end update previous stall rate to the current stall rate!
@@ -276,24 +272,11 @@ void start_bw_manager() {
                                            stall_rate.at(j));
         }
 
-        // Assume App 0 is memory intensive and App 1 is compute intensive
-        // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
-
-        /* if (interval_diff.at(1) > minimum_interference.at(1)) {
-         LINFO(
-         "Exceeded the Minimal allowable interference for App 1, continue climbing!");
-         //before stopping go one step back and break
-         //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-         //LINFOF("Final Ratio: %d", (i - ADAPTATION_STEP));
-         //break;
-         }
-
-         else*/
         if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
           //just make sure that its not something transient...!
           LINFO("Hmm... Is this the best we can do?");
-          std::vector<double> stall_rate_transient = get_average_stall_rate(_num_polls * 2, _poll_sleep,
-                                     _num_poll_outliers * 2);
+          std::vector<double> stall_rate_transient = get_average_stall_rate(
+              _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
           LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
           if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
             LINFO(
@@ -304,10 +287,6 @@ void start_bw_manager() {
             break;
           }
         }
-
-        // else {
-        //continue climbing!!
-        // }
 
         //At the end update previous stall rate to the current stall rate!
         for (j = 0; j < active_cpus; j++) {

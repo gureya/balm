@@ -206,7 +206,7 @@ std::vector<double> get_stall_rate() {
 
     stall_rate.at(i) = ((double) (stalls.at(i) - prev_stalls.at(i)))
         / (clock - prev_clockcounts);
-    
+
     //stall_rate.at(i) = ((double) (stalls.at(i) - prev_stalls.at(i)));
 
     /*printf(
