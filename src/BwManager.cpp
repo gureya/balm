@@ -303,8 +303,6 @@ void start_bw_manager() {
       ;
   }
 
-  //Destroy the shared memory be4 exiting!
-  destroy_shared_memory();
 }
 
 int main(int argc, char **argv) {
@@ -322,6 +320,9 @@ int main(int argc, char **argv) {
   LDEBUG("Initialized");
 
   start_bw_manager();
+
+  //Destroy the shared memory be4 exiting!
+  destroy_shared_memory();
 
   // stop all the counters
   stop_all_counters();
