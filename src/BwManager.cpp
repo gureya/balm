@@ -170,8 +170,9 @@ void start_bw_manager() {
 
         LINFOF("Going to check a ratio of %.2f", i);
         //First check the stall rate of the initial weights without moving pages!
-	if(i != 0){
-        place_all_pages(mem_segments, i);}
+        if (i != 0) {
+          place_all_pages(mem_segments, i);
+        }
 
         //Measure the stall_rate of the applications
         stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
@@ -196,28 +197,27 @@ void start_bw_manager() {
         // Assume App 0 is memory intensive and App 1 is compute intensive
         // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
 
-        /*  if (interval_diff.at(1) > minimum_interference.at(1)) {
-         LINFO(
-         "Exceeded the Minimal allowable interference, Going one step back!");
-         //before stopping go one step back and break
-         place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-         LINFOF("Final Ratio: %d", (i - ADAPTATION_STEP));
-         break;
-         }
+        if (interval_diff.at(1) > minimum_interference.at(1)) {
+          LINFO(
+              "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+          //before stopping go one step back and break
+          //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+          //LINFOF("Final Ratio: %d", (i - ADAPTATION_STEP));
+          //break;
+        }
 
-         else*/
-
-        if (stall_rate.at(0) > best_stall_rate.at(0)) {
-          LINFO("Performance degradation: Going one step back before breaking!");
+        else if (stall_rate.at(0) > best_stall_rate.at(0)) {
+          LINFO(
+              "Performance degradation for App 0: Going one step back before breaking!");
           //before stopping go one step back and break
           place_all_pages(mem_segments, (i - ADAPTATION_STEP));
           LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
           break;
         }
 
-        //  else {
-        //continue climbing!!
-        // }
+        else {
+          //continue climbing!!
+        }
 
         //At the end update previous stall rate to the current stall rate!
         for (j = 0; j < active_cpus; j++) {
