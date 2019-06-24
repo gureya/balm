@@ -237,7 +237,9 @@ void start_bw_manager() {
     }
       break;
     case 2: {
+
       LINFO("Running the adaptive-stand-alone scenario!");
+
       for (i = 0; !terminate; i += ADAPTATION_STEP) {
 
         if (i > sum_nww) {
@@ -284,13 +286,19 @@ void start_bw_manager() {
          }
 
          else*/
-        if (stall_rate.at(0) > best_stall_rate.at(0)) {
-          LINFO(
-              "Performance degradation for App 0: Going one step back before breaking!");
-          //before stopping go one step back and break
-          place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-          LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
-          break;
+        if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
+          //just make sure that its not something transient...!
+          LINFO("Hmm... Is this the best we can do?");
+          if (get_average_stall_rate(_num_polls * 2, _poll_sleep,
+                                     _num_poll_outliers * 2).at(0)
+              > (best_stall_rate.at(0) * 1.001)) {
+            LINFO(
+                "Performance degradation for App 0: Going one step back before breaking!");
+            //before stopping go one step back and break
+            place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+            LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
+            break;
+          }
         }
 
         // else {
