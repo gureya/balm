@@ -123,6 +123,7 @@ void start_bw_manager() {
   if (mem_segments.size() == 0) {
     LINFO("No segments found! Exiting");
     destroy_shared_memory();
+    stop_all_counters();
     exit(EXIT_FAILURE);
   }
 
@@ -310,6 +311,13 @@ int main(int argc, char **argv) {
   // parse and display the configuration
   read_config();
 
+  if (BWMAN_WORKERS == MAX_NODES) {
+    LINFOF("No. of workers equals MAX_NODES (%d==%d)! Exiting", BWMAN_WORKERS,
+           MAX_NODES);
+    destroy_shared_memory();
+    exit(EXIT_FAILURE);
+  }
+
   //set sum_ww & sum_nww & initialize the weights!
   get_sum_nww_ww(BWMAN_WORKERS);
 
@@ -397,8 +405,8 @@ void get_sum_nww_ww(int num_workers) {
     LDEBUG("Worker Nodes: 0");
     for (i = 0; i < MAX_NODES; i++) {
       if (BWMAN_WEIGHTS.at(i).second == 0) {
-        printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
-               BWMAN_WEIGHTS.at(i).first);
+        //printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
+        //       BWMAN_WEIGHTS.at(i).first);
         sum_ww += BWMAN_WEIGHTS.at(i).first;
       } else {
         sum_nww += BWMAN_WEIGHTS.at(i).first;
@@ -409,8 +417,8 @@ void get_sum_nww_ww(int num_workers) {
     LDEBUG("Worker Nodes: 0,1");
     for (i = 0; i < MAX_NODES; i++) {
       if (BWMAN_WEIGHTS.at(i).second == 0 || BWMAN_WEIGHTS.at(i).second == 1) {
-        printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
-               BWMAN_WEIGHTS.at(i).first);
+        //printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
+        //       BWMAN_WEIGHTS.at(i).first);
         sum_ww += BWMAN_WEIGHTS.at(i).first;
       } else {
         sum_nww += BWMAN_WEIGHTS.at(i).first;
@@ -422,8 +430,8 @@ void get_sum_nww_ww(int num_workers) {
     for (i = 0; i < MAX_NODES; i++) {
       if (BWMAN_WEIGHTS.at(i).second == 1 || BWMAN_WEIGHTS.at(i).second == 2
           || BWMAN_WEIGHTS.at(i).second == 3) {
-        printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
-               BWMAN_WEIGHTS.at(i).first);
+        //printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
+        //       BWMAN_WEIGHTS.at(i).first);
         sum_ww += BWMAN_WEIGHTS.at(i).first;
       } else {
         sum_nww += BWMAN_WEIGHTS.at(i).first;
@@ -436,8 +444,8 @@ void get_sum_nww_ww(int num_workers) {
       if (BWMAN_WEIGHTS.at(i).second == 0 || BWMAN_WEIGHTS.at(i).second == 1
           || BWMAN_WEIGHTS.at(i).second == 2
           || BWMAN_WEIGHTS.at(i).second == 3) {
-        printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
-               BWMAN_WEIGHTS.at(i).first);
+        //printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
+        //       BWMAN_WEIGHTS.at(i).first);
         sum_ww += BWMAN_WEIGHTS.at(i).first;
       } else {
         sum_nww += BWMAN_WEIGHTS.at(i).first;
@@ -447,8 +455,8 @@ void get_sum_nww_ww(int num_workers) {
     //workers: all
     LDEBUG("Worker Nodes: All Nodes");
     for (i = 0; i < MAX_NODES; i++) {
-      printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
-             BWMAN_WEIGHTS.at(i).first);
+      //printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(i).second,
+      //       BWMAN_WEIGHTS.at(i).first);
       sum_ww += BWMAN_WEIGHTS.at(i).first;
     }
   } else {
