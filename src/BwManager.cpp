@@ -178,7 +178,9 @@ void start_bw_manager() {
         LINFOF("Going to check a ratio of %.2f", i);
         //First check the stall rate of the initial weights without moving pages!
         if (i != 0) {
+          stop_counters();
           place_all_pages(mem_segments, i);
+          start_counters();
         }
 
         //Measure the stall_rate of the applications
@@ -250,7 +252,9 @@ void start_bw_manager() {
         LINFOF("Going to check a ratio of %.2f", i);
         //First check the stall rate of the initial weights without moving pages!
         if (i != 0) {
+          stop_counters();
           place_all_pages(mem_segments, i);
+          start_counters();
         }
 
         //Measure the stall_rate of the applications

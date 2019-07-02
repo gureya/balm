@@ -45,6 +45,34 @@ char const *amd_estr = "DISPATCH_STALLS:PMC0";
 char const *intel_estr = "RESOURCE_STALLS_ANY:PMC0";
 //if a specific pmc has been specified override the above variables!
 
+//a function that starts counters
+void start_counters() {
+  //Start all counters in the previously set up event set.
+  err = perfmon_startCounters();
+  if (err < 0) {
+    LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
+            (-1 * err) - 1);
+    perfmon_finalize();
+    topology_finalize();
+    exit(-1);
+    //return 1;
+  }
+}
+
+//a function that starts counters
+void stop_counters() {
+  // Stop all counters in the previously started event set before doing a read.
+  err = perfmon_stopCounters();
+  if (err < 0) {
+    LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
+            (-1 * err) - 1);
+    perfmon_finalize();
+    topology_finalize();
+    //return 1;
+    exit(-1);
+  }
+}
+
 void initialize_likwid() {
   if (!initiatialized) {
 
@@ -154,15 +182,8 @@ void initialize_likwid() {
     }
 
     // Start all counters in the previously set up event set.
-    err = perfmon_startCounters();
-    if (err < 0) {
-      LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
-              (-1 * err) - 1);
-      perfmon_finalize();
-      topology_finalize();
-      exit(-1);
-      //return 1;
-    }
+    start_counters();
+
     initiatialized = true;
     //printf("Setting up Likwid statistics for the first time\n");
   }
@@ -182,15 +203,7 @@ std::vector<double> get_stall_rate() {
   std::vector<double> stall_rate(active_cpus);
 
   // Stop all counters in the previously started event set before doing a read.
-  err = perfmon_stopCounters();
-  if (err < 0) {
-    LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
-            (-1 * err) - 1);
-    perfmon_finalize();
-    topology_finalize();
-    //return 1;
-    exit(-1);
-  }
+  stop_counters();
 
   // Read the result of every active thread/CPU for all events in estr.
 
@@ -225,15 +238,7 @@ std::vector<double> get_stall_rate() {
 
   prev_clockcounts = clock;
 
-  err = perfmon_startCounters();
-  if (err < 0) {
-    LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
-            (-1 * err) - 1);
-    perfmon_finalize();
-    topology_finalize();
-    exit(-1);
-    //return 1;
-  }
+  start_counters();
 
   return stall_rate;
   //return stalls;

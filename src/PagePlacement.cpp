@@ -12,7 +12,7 @@
 #include <numeric> //vector sum
 
 static int pagesize;
-bool weight_initialized = false;
+//bool weight_initialized = false;
 
 //temporary vector of weights initialized to zero
 std::vector<std::pair<double, int>> BWMAN_WEIGHTS_temp(MAX_NODES,
@@ -170,13 +170,14 @@ void get_node_mappings(int page_count, int *nodes) {
 }
 
 void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
-//#pragma omp parallel for
+  get_new_weights(r);
+#pragma omp parallel for
   for (size_t i = 0; i < mem_segments.size(); i++) {
     move_pages_remote(mem_segments.at(i).processID,
                       mem_segments.at(i).pageAlignedStartAddress,
                       mem_segments.at(i).pageAlignedLength, r);
   }
-  weight_initialized = false;
+  //weight_initialized = false;
 }
 
 //initial page placement with weighted interleave
@@ -282,10 +283,10 @@ void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
 void move_pages_remote(pid_t pid, void *start, unsigned long len,
                        double remote_ratio) {
 
-  if (!weight_initialized) {
-    get_new_weights(remote_ratio);
-    weight_initialized = true;
-  }
+  /*if (!weight_initialized) {
+   get_new_weights(remote_ratio);
+   weight_initialized = true;
+   }*/
 
   pagesize = numa_pagesize();
 
@@ -312,7 +313,7 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
 
   //uniform distribution memory allocation (using the bwap style format)
   //first set the page addresses, openmp for faster processing
-#pragma omp parallel for firstprivate(pages,pagesize)
+//#pragma omp parallel for firstprivate(pages,pagesize)
   for (i = 0; i < page_count; i++) {
     addr[i] = pages + i * pagesize;
     nodes[i] = 0;  //incase the last page is not initialized
@@ -356,7 +357,7 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
 
     if (i_p != 0) {
       int upper_bound = i_k + i_p;
-#pragma omp parallel for firstprivate(my_node,a)
+//#pragma omp parallel for firstprivate(my_node,a)
       for (j = i_k; j < upper_bound; j++) {
         my_node = j % a;
         nodes[j] = node_ids.at(my_node);
