@@ -12,16 +12,16 @@
 # To configure the CPUs, change the arrays below!
 
 #log file where the results are collected
-log_file="bwap_results.txt"
+log_file="sc_results.txt"
 
 #For Hydra (1,2,3,4,8 workers!)
-cpus=("0-7" "0-15" "8-31" "0-31" "0-63")
-num_threads=("8" "16" "24" "32" "64")
-num_workers=("1" "2" "3" "4" "8")
-interleave_nodes=("0" "0-1" "1-3" "0-3" "all")
-weights=("weights_1w.txt" "weights_2w.txt" "weights_3w.txt" "weights_4w.txt" "weights_8w.txt")
+cpus=("0-7" "0-15" "0-31" "0-63")
+num_threads=("8" "16" "32" "64")
+num_workers=("1" "2" "4" "8")
+interleave_nodes=("0" "0-1" "0-3" "all")
+weights=("weights_1w.txt" "weights_2w.txt" "weights_4w.txt" "weights_8w.txt")
 weights_uniform=("uniform_weights.txt")
-weights_workers=("w_weights_1w.txt" "w_weights_2w.txt" "w_weights_3w.txt" "w_weights_4w.txt" "w_weights_8w.txt")
+weights_workers=("w_weights_1w.txt" "w_weights_2w.txt" "w_weights_4w.txt" "w_weights_8w.txt")
 
 #cpus=("0-7")
 #num_threads=("8")

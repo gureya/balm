@@ -10,19 +10,29 @@
 # /path/to/check-scalability.sh /path/to/myApp appArg1 appArg2
 #
 # To configure the CPUs, change the arrays below!
-log_file="/home/dgureya/devs/unstickymem/elapsed_stall_rate_log.txt"
+# log_file="/home/dgureya/devs/unstickymem/elapsed_stall_rate_log.txt"
 
 #echo -e "3-WORKERS\n" >> ${log_file}
 
-echo "streamcluster" >> ${log_file}
-./run-app-xtimes_v3.sh streamcluster
-echo "=================================================" >> ${log_file}
+red=`tput setaf 1`
 
-echo "/home/dgureya/devs/NPB3.0-omp-C/bin/sp.B" >> ${log_file}
-./run-app-xtimes_v2.sh /home/dgureya/devs/NPB3.0-omp-C/bin/sp.B
-echo "=================================================" >> ${log_file}
+echo -e "${red}streamcluster"
+echo -e "${red}============================================"
+./sc.sh
 
-echo "/home/dgureya/devs/fft_openmp" >> ${log_file}
-./run-app-xtimes_v2.sh /home/dgureya/devs/fft_openmp
-echo "=================================================" >> ${log_file}
+echo -e "${red}ocean_cp"
+echo -e "${red}============================================"
+./oc.sh
+
+echo -e "${red}ocean_ncp"
+echo -e "${red}============================================"
+./on.sh
+
+echo -e "${red}/home/dgureya/devs/NPB3.0-omp-C/bin/sp.B"
+echo -e "${red}============================================"
+./generic.sh /home/dgureya/devs/NPB3.0-omp-C/bin/sp.B
+
+echo -e "${red}/home/dgureya/devs/NPB3.0-omp-C/bin/bt.B"
+echo -e "${red}============================================"
+./generic.sh /home/dgureya/devs/NPB3.0-omp-C/bin/bt.B
 

@@ -12,7 +12,7 @@
 # To configure the CPUs, change the arrays below!
 
 #log file where the results are collected
-log_file="generic.txt"
+log_file="oc_results.txt"
 
 #For Hydra (1,2,3,4,8 workers!)
 cpus=("0-7" "0-15" "0-31" "0-63")
@@ -49,7 +49,7 @@ red=`tput setaf 1`
 reset=`tput sgr0`
 
 echo "----------------------" >> ${log_file}
-echo "|$@|" >> ${log_file}
+echo "|ocean_cp|" >> ${log_file}
 echo -e "----------------------\n" >> ${log_file}
 
 declare total=0
@@ -79,9 +79,9 @@ do
 		START=$(date +%s)
 	    	#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#if [ "${num_workers[$i]}" != "8" ]; then
-		run_cmd "numactl --physcpubind=${cpus[$i]} $@"
+		#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#run_cmd "/home/dgureya/devs/bandwidth_bench_shared -c ${cpus[$i]}"
-	    #run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    run_cmd "numactl --physcpubind=${cpus[$i]} /home/dgureya/parsec-3.0/ext/splash2x/apps/ocean_cp/inst/amd64-linux.gcc/bin/ocean_cp -n4098 -p${num_threads[$i]} -e1e-14 -r10000 -t14400"
 		END=$(date +%s)
 		DIFF=$(( $END - $START ))
 		echo -e "Run_$x\t$DIFF" >> ${log_file}
@@ -120,9 +120,9 @@ do
 		START=$(date +%s)
 	    	#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#if [ "${num_workers[$i]}" != "8" ]; then
-		run_cmd "numactl --physcpubind=${cpus[$i]} $@"
+		#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#run_cmd "/home/dgureya/devs/bandwidth_bench_shared -c ${cpus[$i]}"
-	    #run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    run_cmd "numactl --physcpubind=${cpus[$i]} /home/dgureya/parsec-3.0/ext/splash2x/apps/ocean_cp/inst/amd64-linux.gcc/bin/ocean_cp -n4098 -p${num_threads[$i]} -e1e-14 -r10000 -t14400"
 		END=$(date +%s)
 		DIFF=$(( $END - $START ))
 		echo -e "Run_$x\t$DIFF" >> ${log_file}
@@ -160,9 +160,9 @@ do
 		START=$(date +%s)
 	    	#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#if [ "${num_workers[$i]}" != "8" ]; then
-		run_cmd "numactl --physcpubind=${cpus[$i]} $@"
+		#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#run_cmd "/home/dgureya/devs/bandwidth_bench_shared -c ${cpus[$i]}"
-	    #run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    run_cmd "numactl --physcpubind=${cpus[$i]} /home/dgureya/parsec-3.0/ext/splash2x/apps/ocean_cp/inst/amd64-linux.gcc/bin/ocean_cp -n4098 -p${num_threads[$i]} -e1e-14 -r10000 -t14400"
 		END=$(date +%s)
 		DIFF=$(( $END - $START ))
 		echo -e "Run_$x\t$DIFF" >> ${log_file}
@@ -200,9 +200,9 @@ do
 		START=$(date +%s)
 	    	#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#if [ "${num_workers[$i]}" != "8" ]; then
-		run_cmd "numactl --physcpubind=${cpus[$i]} $@"
+		#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#run_cmd "/home/dgureya/devs/bandwidth_bench_shared -c ${cpus[$i]}"
-	    #run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    run_cmd "numactl --physcpubind=${cpus[$i]} /home/dgureya/parsec-3.0/ext/splash2x/apps/ocean_cp/inst/amd64-linux.gcc/bin/ocean_cp -n4098 -p${num_threads[$i]} -e1e-14 -r10000 -t14400"
 		END=$(date +%s)
 		DIFF=$(( $END - $START ))
 		echo -e "Run_$x\t$DIFF" >> ${log_file}
