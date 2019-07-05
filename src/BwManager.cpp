@@ -170,7 +170,7 @@ void start_bw_manager() {
       LINFO("Running the adaptive-co-scheduled scenario!");
       for (i = 0; !terminate; i += ADAPTATION_STEP) {
 
-        if (i > sum_nww) {
+        if (i >= sum_nww) {
           i = sum_nww;
           terminate = true;
         }
@@ -244,7 +244,7 @@ void start_bw_manager() {
 
       for (i = 0; !terminate; i += ADAPTATION_STEP) {
 
-        if (i > sum_nww) {
+        if (i >= sum_nww) {
           i = sum_nww;
           terminate = true;
         }
