@@ -28,11 +28,15 @@ echo -e "${red}ocean_ncp"
 echo -e "${red}============================================"
 ./on.sh
 
-echo -e "${red}/home/dgureya/devs/NPB3.0-omp-C/bin/sp.B"
+#echo -e "${red}/home/dgureya/devs/NPB3.0-omp-C/bin/sp.B"
+echo -e "${red}/home/dgureya/NPB3.0-omp-C/bin/sp.B"
 echo -e "${red}============================================"
-./generic.sh /home/dgureya/devs/NPB3.0-omp-C/bin/sp.B
+#./generic.sh /home/dgureya/devs/NPB3.0-omp-C/bin/sp.B
+./generic.sh /home/dgureya/NPB3.0-omp-C/bin/sp.B
 
-echo -e "${red}/home/dgureya/devs/NPB3.0-omp-C/bin/bt.B"
+#echo -e "${red}/home/dgureya/devs/NPB3.0-omp-C/bin/bt.B"
+echo -e "${red}/home/dgureya/NPB3.0-omp-C/bin/sp.B"
 echo -e "${red}============================================"
-./generic.sh /home/dgureya/devs/NPB3.0-omp-C/bin/bt.B
+#./generic.sh /home/dgureya/devs/NPB3.0-omp-C/bin/bt.B
+./generic.sh /home/dgureya/NPB3.0-omp-C/bin/bt.B
 

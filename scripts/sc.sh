@@ -15,13 +15,13 @@
 log_file="sc_results.txt"
 
 #For Hydra (1,2,3,4,8 workers!)
-cpus=("0-7" "0-15" "0-31" "0-63")
-num_threads=("8" "16" "32" "64")
-num_workers=("1" "2" "4" "8")
-interleave_nodes=("0" "0-1" "0-3" "all")
-weights=("weights_1w.txt" "weights_2w.txt" "weights_4w.txt" "weights_8w.txt")
-weights_uniform=("uniform_weights.txt")
-weights_workers=("w_weights_1w.txt" "w_weights_2w.txt" "w_weights_4w.txt" "w_weights_8w.txt")
+#cpus=("0-7" "0-15" "0-31" "0-63")
+#num_threads=("8" "16" "32" "64")
+#num_workers=("1" "2" "4" "8")
+#interleave_nodes=("0" "0-1" "0-3" "all")
+#weights=("weights_1w.txt" "weights_2w.txt" "weights_4w.txt" "weights_8w.txt")
+#weights_uniform=("uniform_weights.txt")
+#weights_workers=("w_weights_1w.txt" "w_weights_2w.txt" "w_weights_4w.txt" "w_weights_8w.txt")
 
 #For Intel14_v2 (1,2,3,4 workers!)
 cpus=("0-6,28" "0-13,28,35" "0-27,28,35,42,49")
@@ -84,7 +84,8 @@ do
 		export OMP_NUM_THREADS=${num_threads[$i]}
 	    export UNSTICKYMEM_MODE=scan
 	    export UNSTICKYMEM_WORKERS=${num_workers[$i]}
-		export BWAP_WEIGHTS=/home/dgureya/devs/unstickymem/config/${weights[$i]}
+		#export BWAP_WEIGHTS=/home/dgureya/devs/unstickymem/config/${weights[$i]}
+		export BWAP_WEIGHTS=/home/dgureya/unstickymem/weights/${weights[$i]}
 		START=$(date +%s)
 	    	#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#if [ "${num_workers[$i]}" != "8" ]; then
@@ -92,7 +93,6 @@ do
 		#run_cmd "/home/dgureya/devs/bandwidth_bench_shared -c ${cpus[$i]}"
 	    #run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
 	    run_cmd "numactl --physcpubind=${cpus[$i]} /home/dgureya/parsec-3.0/pkgs/kernels/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 128 2000000 200000 5000 none output.txt ${num_threads[$i]}"
-	    
 		END=$(date +%s)
 		DIFF=$(( $END - $START ))
 		echo -e "Run_$x\t$DIFF" >> ${log_file}
@@ -127,13 +127,15 @@ do
 		export OMP_NUM_THREADS=${num_threads[$i]}
 	    export UNSTICKYMEM_MODE=scan
 	    export UNSTICKYMEM_WORKERS=${num_workers[$i]}
-		export BWAP_WEIGHTS=/home/dgureya/devs/unstickymem/config/${weights_uniform[0]}
+		#export BWAP_WEIGHTS=/home/dgureya/devs/unstickymem/config/${weights_uniform[0]}
+		export BWAP_WEIGHTS=/home/dgureya/unstickymem/weights/${weights_uniform[0]}
 		START=$(date +%s)
 	    	#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#if [ "${num_workers[$i]}" != "8" ]; then
 		#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#run_cmd "/home/dgureya/devs/bandwidth_bench_shared -c ${cpus[$i]}"
-	    run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    #run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    run_cmd "numactl --physcpubind=${cpus[$i]} /home/dgureya/parsec-3.0/pkgs/kernels/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 128 2000000 200000 5000 none output.txt ${num_threads[$i]}"
 		END=$(date +%s)
 		DIFF=$(( $END - $START ))
 		echo -e "Run_$x\t$DIFF" >> ${log_file}
@@ -167,13 +169,15 @@ do
 		export OMP_NUM_THREADS=${num_threads[$i]}
 	    export UNSTICKYMEM_MODE=scan
 	    export UNSTICKYMEM_WORKERS=${num_workers[$i]}
-		export BWAP_WEIGHTS=/home/dgureya/devs/unstickymem/config/${weights_workers[$i]}
+		#export BWAP_WEIGHTS=/home/dgureya/devs/unstickymem/config/${weights_workers[$i]}
+		export BWAP_WEIGHTS=/home/dgureya/unstickymem/weights/${weights_workers[$i]}
 		START=$(date +%s)
 	    	#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#if [ "${num_workers[$i]}" != "8" ]; then
 		#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#run_cmd "/home/dgureya/devs/bandwidth_bench_shared -c ${cpus[$i]}"
-	    run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    #run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    run_cmd "numactl --physcpubind=${cpus[$i]} /home/dgureya/parsec-3.0/pkgs/kernels/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 128 2000000 200000 5000 none output.txt ${num_threads[$i]}"   
 		END=$(date +%s)
 		DIFF=$(( $END - $START ))
 		echo -e "Run_$x\t$DIFF" >> ${log_file}
@@ -207,13 +211,15 @@ do
 		export OMP_NUM_THREADS=${num_threads[$i]}
 	    export UNSTICKYMEM_MODE=disabled
 	    export UNSTICKYMEM_WORKERS=${num_workers[$i]}
-		export BWAP_WEIGHTS=/home/dgureya/devs/unstickymem/config/${weights_workers[$i]}
+		#export BWAP_WEIGHTS=/home/dgureya/devs/unstickymem/config/${weights_workers[$i]}
+		export BWAP_WEIGHTS=/home/dgureya/unstickymem/weights/${weights_workers[$i]}
 		START=$(date +%s)
 	    	#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#if [ "${num_workers[$i]}" != "8" ]; then
 		#run_cmd "numactl --physcpubind=${cpus[$i]} $@"
 		#run_cmd "/home/dgureya/devs/bandwidth_bench_shared -c ${cpus[$i]}"
-	    run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    #run_cmd "numactl --physcpubind=${cpus[$i]} parsecmgmt -a run -p streamcluster -i native -n ${num_threads[$i]}"
+	    run_cmd "numactl --physcpubind=${cpus[$i]} /home/dgureya/parsec-3.0/pkgs/kernels/streamcluster/inst/amd64-linux.gcc/bin/streamcluster 10 20 128 2000000 200000 5000 none output.txt ${num_threads[$i]}"
 		END=$(date +%s)
 		DIFF=$(( $END - $START ))
 		echo -e "Run_$x\t$DIFF" >> ${log_file}

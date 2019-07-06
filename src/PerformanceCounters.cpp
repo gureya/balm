@@ -59,7 +59,7 @@ void start_counters() {
   }
 }
 
-//a function that starts counters
+//a function that stops counters
 void stop_counters() {
   // Stop all counters in the previously started event set before doing a read.
   err = perfmon_stopCounters();
