@@ -136,7 +136,10 @@ void start_bw_manager() {
    mem_segments.at(i).pageAlignedLength / 4096);
    }*/
 
-  //First enforce weighted interleave
+  //First enforce the weighted interleave incase mbind fails
+  LINFO("Enforcing the weighted interleave incase mbind failed!");
+  place_all_pages(mem_segments,0);
+
   /*double i;
    bool terminate = false;
    for (i = 0; !terminate; i += ADAPTATION_STEP) {
