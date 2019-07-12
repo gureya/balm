@@ -137,8 +137,8 @@ void start_bw_manager() {
    }*/
 
   //First enforce the weighted interleave incase mbind fails
-  LINFO("Enforcing the weighted interleave incase mbind failed!");
-  place_all_pages(mem_segments,0);
+  //LINFO("Enforcing the weighted interleave incase mbind failed!");
+  //place_all_pages(mem_segments,0);
 
   /*double i;
    bool terminate = false;
@@ -244,8 +244,9 @@ void start_bw_manager() {
     }
       break;
     case 1: {
+      if(fixed_ratio_value != 0){
       LINFOF("Going to check a fixed ratio of %d", fixed_ratio_value);
-      place_all_pages(mem_segments, fixed_ratio_value);
+      place_all_pages(mem_segments, fixed_ratio_value);}
     }
       break;
     case 2: {
