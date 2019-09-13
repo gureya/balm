@@ -28,6 +28,8 @@ double sum_ww = 0;
 // sum of non-worker nodes weights
 double sum_nww = 0;
 
+double sum_nww_adaptive = 0;
+
 using namespace std;
 
 vector<int> BWMAN_CORES;
@@ -139,7 +141,6 @@ void start_bw_manager() {
   //First enforce the weighted interleave incase mbind fails
   //LINFO("Enforcing the weighted interleave incase mbind failed!");
   //place_all_pages(mem_segments,0);
-
   /*double i;
    bool terminate = false;
    for (i = 0; !terminate; i += ADAPTATION_STEP) {
@@ -244,9 +245,10 @@ void start_bw_manager() {
     }
       break;
     case 1: {
-      if(fixed_ratio_value != 0){
-      LINFOF("Going to check a fixed ratio of %d", fixed_ratio_value);
-      place_all_pages(mem_segments, fixed_ratio_value);}
+      if (fixed_ratio_value != 0) {
+        LINFOF("Going to check a fixed ratio of %d", fixed_ratio_value);
+        place_all_pages(mem_segments, fixed_ratio_value);
+      }
     }
       break;
     case 2: {
