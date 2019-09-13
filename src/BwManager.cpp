@@ -19,7 +19,7 @@ bool FIXED_RATIO = false;
 
 int BWMAN_WORKERS = 1;
 int bwman_mode_value = 0;  // 0 - adaptive-coscheduled, 1 - fixed-ratio, 2 - adaptive-standalone
-int fixed_ratio_value = 0;
+double fixed_ratio_value = 0;
 
 static bool is_initialized = false;
 
@@ -27,8 +27,6 @@ static bool is_initialized = false;
 double sum_ww = 0;
 // sum of non-worker nodes weights
 double sum_nww = 0;
-
-double sum_nww_adaptive = 0;
 
 using namespace std;
 
@@ -99,9 +97,9 @@ void read_config(void) {
 
   FIXED_RATIO = getenv("FIXED_RATIO") != nullptr;
   if (FIXED_RATIO) {
-    fixed_ratio_value = stoi(getenv("FIXED_RATIO"));
+    fixed_ratio_value = stof(getenv("FIXED_RATIO"));
   }
-  LINFOF("FIXED_RATIO: %d", fixed_ratio_value);
+  LINFOF("FIXED_RATIO: %.2f", fixed_ratio_value);
 
   WEIGHTS = getenv("BWMAN_WEIGHTS") != nullptr;
   if (WEIGHTS) {
@@ -245,10 +243,18 @@ void start_bw_manager() {
     }
       break;
     case 1: {
-      if (fixed_ratio_value != 0) {
-        LINFOF("Going to check a fixed ratio of %d", fixed_ratio_value);
-        place_all_pages(mem_segments, fixed_ratio_value);
-      }
+
+      //if(fixed_ratio_value != 0){
+      LINFOF("Going to check a fixed ratio of %d", fixed_ratio_value);
+      stop_counters();
+      place_all_pages(mem_segments, fixed_ratio_value);
+      start_counters();
+      //Measure the stall_rate of the applications
+      stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                          _num_poll_outliers);
+      LINFOF("Stall rate: %1.10f", stall_rate.at(0));
+      //}
+
     }
       break;
     case 2: {
