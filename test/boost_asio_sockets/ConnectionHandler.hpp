@@ -92,12 +92,14 @@ class Server {
 //constructor for accepting connection from client
   Server(boost::asio::io_service& io_service)
       : acceptor_(io_service, tcp::endpoint(tcp::v4(), 6767)) {
+    std::cout << "[Server] Waiting for connection...\n";
     start_accept();
   }
   void handle_accept(con_handler::pointer connection,
                      const boost::system::error_code& err) {
     if (!err) {
       connection->start();
+      std::cout << "[Server] Accepted a connection from client\n";
     }
     start_accept();
   }

@@ -50,6 +50,10 @@ void server() {
 
     std::cout << " }\n";
 
+   // for (int i = 0; i < data.size(); i++) {
+   //   std::cout << data.at(i).a << std::endl;
+   // }
+
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
   }
