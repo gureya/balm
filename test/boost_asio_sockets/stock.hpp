@@ -20,7 +20,7 @@
 
 #include <string>
 
-namespace s11n_example {
+//namespace s11n_example {
 
 /// Structure to hold information about a single stock.
 struct stock {
@@ -34,7 +34,6 @@ struct stock {
   int buy_quantity;
   double sell_price;
   int sell_quantity;
-  int* pageAlignedStartAddress;
 
   template<typename Archive>
   void serialize(Archive& ar, const unsigned int version) {
@@ -48,10 +47,9 @@ struct stock {
     ar & buy_quantity;
     ar & sell_price;
     ar & sell_quantity;
-    ar & pageAlignedStartAddress;
   }
 };
 
-}  // namespace s11n_example
+//}  // namespace s11n_example
 
 #endif /* TEST_BOOST_ASIO_SOCKETS_STOCK_HPP_ */

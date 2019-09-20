@@ -35,8 +35,6 @@ class server {
           boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)) {
     // Create the data to be sent to each client.
     stock s;
-    int a = 12;
-    s.pageAlignedStartAddress = &a;
     s.code = "ABC";
     s.name = "A Big Company";
     s.open_price = 4.56;
@@ -58,7 +56,6 @@ class server {
     s.buy_quantity = 34000;
     s.sell_price = 19.85;
     s.sell_quantity = 45000;
-    s.pageAlignedStartAddress = &a;
     stocks_.push_back(s);
 
     // Start an accept operation for a new connection.

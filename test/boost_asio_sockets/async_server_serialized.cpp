@@ -1,12 +1,12 @@
 /*
- * client_serialization.cpp
+ * async_server_serialized.cpp
  *
- *  Created on: Sep 17, 2019
+ *  Created on: Sep 20, 2019
  *      Author: David Daharewa Gureya
  */
 
 //
-// client.cpp
+// server.cpp
 // ~~~~~~~~~~
 //
 // Copyright (c) 2003-2016 Christopher M. Kohlhoff (chris at kohlhoff dot com)
@@ -16,44 +16,43 @@
 //
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
 #include <iostream>
 #include <vector>
 #include "connection_serialization.hpp" // Must come before boost/serialization headers.
 #include <boost/serialization/vector.hpp>
 #include "stock.hpp"
 
-namespace s11n_example {
+//namespace s11n_example {
 
-/// Downloads stock quote information from a server.
-class client {
+/// Serves stock quote information to any client that connects to it.
+class Server {
  public:
-  /// Constructor starts the asynchronous connect operation.
-  client(boost::asio::io_service& io_service, const std::string& host,
-         const std::string& service)
-      : connection_(io_service) {
-    // Resolve the host name into an IP address.
-    boost::asio::ip::tcp::resolver resolver(io_service);
-    boost::asio::ip::tcp::resolver::query query(host, service);
-    boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver
-        .resolve(query);
+  /// Constructor opens the acceptor and starts waiting for the first incoming
+  /// connection.
+  Server(boost::asio::io_service& io_service, unsigned short port)
+      : acceptor_(
+          io_service,
+          boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)) {
 
-    // Start an asynchronous connect operation.
-    boost::asio::async_connect(
-        connection_.socket(),
-        endpoint_iterator,
-        boost::bind(&client::handle_connect, this,
-                    boost::asio::placeholders::error));
+    // Start an accept operation for a new connection.
+    connection_ptr new_conn(new connection(acceptor_.get_io_service()));
+    acceptor_.async_accept(
+        new_conn->socket(),
+        boost::bind(&Server::handle_accept, this,
+                    boost::asio::placeholders::error, new_conn));
   }
 
-  /// Handle completion of a connect operation.
-  void handle_connect(const boost::system::error_code& e) {
+  /// Handle completion of a accept operation.
+  void handle_accept(const boost::system::error_code& e, connection_ptr conn) {
+
     if (!e) {
       // Successfully established connection. Start operation to read the list
       // of stocks. The connection::async_read() function will automatically
       // decode the data that is read from the underlying socket.
-      connection_.async_read(
+      conn->async_read(
           stocks_,
-          boost::bind(&client::handle_read, this,
+          boost::bind(&Server::handle_read, this,
                       boost::asio::placeholders::error));
     } else {
       // An error occurred. Log it and return. Since we are not starting a new
@@ -61,6 +60,13 @@ class client {
       // exit.
       std::cerr << e.message() << std::endl;
     }
+
+    // Start an accept operation for a new connection.
+   // connection_ptr new_conn(new connection(acceptor_.get_io_service()));
+   // acceptor_.async_accept(
+   //     new_conn->socket(),
+   //     boost::bind(&Server::handle_accept, this,
+   //                 boost::asio::placeholders::error, new_conn));
   }
 
   /// Handle completion of a read operation.
@@ -82,33 +88,31 @@ class client {
       }
     } else {
       // An error occurred.
-      std::cerr << e.message() << std::endl;
+      std::cerr << "An Error has occured: " << e.message() << std::endl;
     }
-
-    // Since we are not starting a new operation the io_service will run out of
-    // work to do and the client will exit.
   }
 
  private:
-  /// The connection to the server.
-  connection connection_;
+/// The acceptor object used to accept incoming socket connections.
+  boost::asio::ip::tcp::acceptor acceptor_;
 
-  /// The data received from the server.
+/// The data to be sent to each client.
   std::vector<stock> stocks_;
 };
 
-}  // namespace s11n_example
+//}  // namespace s11n_example
 
 int main(int argc, char* argv[]) {
   try {
     // Check command line arguments.
-    if (argc != 3) {
-      std::cerr << "Usage: client <host> <port>" << std::endl;
+    if (argc != 2) {
+      std::cerr << "Usage: server <port>" << std::endl;
       return 1;
     }
+    unsigned short port = boost::lexical_cast<unsigned short>(argv[1]);
 
     boost::asio::io_service io_service;
-    s11n_example::client client(io_service, argv[1], argv[2]);
+    Server server(io_service, port);
     io_service.run();
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;

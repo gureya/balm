@@ -28,7 +28,7 @@
 #include <sstream>
 #include <vector>
 
-namespace s11n_example {
+//namespace s11n_example {
 
 /// The connection class provides serialization primitives on top of a socket.
 /**
@@ -78,6 +78,7 @@ class connection {
     buffers.push_back(boost::asio::buffer(outbound_header_));
     buffers.push_back(boost::asio::buffer(outbound_data_));
     boost::asio::async_write(socket_, buffers, handler);
+    std::cout << "Data has been send successfully!" << std::endl;
   }
 
   /// Asynchronously read a data structure from the socket.
@@ -92,6 +93,7 @@ class connection {
         boost::asio::buffer(inbound_header_),
         boost::bind(f, this, boost::asio::placeholders::error, boost::ref(t),
                     boost::make_tuple(handler)));
+    std::cout << "Successfully reached here...0!" << std::endl;
   }
 
   /// Handle a completed read of a message header. The handler is passed using
@@ -102,6 +104,7 @@ class connection {
                           boost::tuple<Handler> handler) {
     if (e) {
       boost::get<0>(handler)(e);
+      std::cout << "Successfully reached here...1!" << std::endl;
     } else {
       // Determine the length of the serialized data.
       std::istringstream is(std::string(inbound_header_, header_length));
@@ -110,6 +113,7 @@ class connection {
         // Header doesn't seem to be valid. Inform the caller.
         boost::system::error_code error(boost::asio::error::invalid_argument);
         boost::get<0>(handler)(error);
+        std::cout << "Successfully reached here...2!" << std::endl;
         return;
       }
 
@@ -175,6 +179,6 @@ class connection {
 
 typedef boost::shared_ptr<connection> connection_ptr;
 
-}  // namespace s11n_example
+//}  // namespace s11n_example
 
 #endif /* TEST_BOOST_ASIO_SOCKETS_CONNECTION_SERIALIZATION_HPP_ */

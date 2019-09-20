@@ -49,7 +49,7 @@ class con_handler : public boost::enable_shared_from_this<con_handler> {
   }
 
   void start() {
-    data.resize(10);
+    //data.resize(10);
     boost::asio::async_read(
         sock,
         boost::asio::buffer(data),
