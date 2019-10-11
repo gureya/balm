@@ -14,25 +14,48 @@
 #include <boost/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <vector>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <boost/serialization/vector.hpp>
 
 using namespace boost::asio;
 using ip::tcp;
 
 struct CMYType {
-  float a, b, c;
+  uintptr_t pageAlignedStartAddress;
+  unsigned long pageAlignedLength;
+  pid_t processID;
+  template<typename Archive>
+  void serialize(Archive& ar, const unsigned int version) {
+    ar & pageAlignedStartAddress;
+    ar & pageAlignedLength;
+    ar & processID;
+  }
 };
 
-//std::vector<CMYType> data(10);
-std::size_t length;
-
 static std::ostream& operator<<(std::ostream& os, CMYType const& cmy) {
-  return os << "[" << cmy.a << "," << cmy.b << "," << cmy.c << "]";
+  return os << "[" << cmy.pageAlignedStartAddress << ","
+            << cmy.pageAlignedLength << "," << cmy.processID << "]";
 }
 
 class con_handler : public boost::enable_shared_from_this<con_handler> {
  private:
   tcp::socket sock;
   std::vector<CMYType> data;
+
+  /// The size of a fixed length header.
+  enum {
+    header_length = 8
+  };
+
+  struct network_data_in {
+    char inbound_header_[header_length];  //size of data to read
+    std::vector<char> inbound_data_;  // read data
+  };
+  network_data_in data_in;
 
  public:
   typedef boost::shared_ptr<con_handler> pointer;
@@ -49,19 +72,53 @@ class con_handler : public boost::enable_shared_from_this<con_handler> {
   }
 
   void start() {
-    //data.resize(10);
+
+    //first receive a string indicating the size of the vector!
     boost::asio::async_read(
         sock,
-        boost::asio::buffer(data),
-        boost::bind(&con_handler::handle_read, shared_from_this(),
+        boost::asio::buffer(data_in.inbound_header_),
+        boost::bind(&con_handler::handle_read_size, shared_from_this(),
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
   }
 
-  void handle_read(const boost::system::error_code& err,
-                   size_t bytes_transferred) {
+  void handle_read_size(const boost::system::error_code& err,
+                        size_t bytes_transferred) {
     if (!err) {
-      std::cout << "length:" << bytes_transferred << " data: { ";
+      //get size of data
+      std::istringstream is(
+          std::string(data_in.inbound_header_, header_length));
+      std::size_t inbound_datasize = 0;
+      is >> std::hex >> inbound_datasize;
+      std::cout << " size in size_t: " << inbound_datasize << std::endl;
+
+      data_in.inbound_data_.resize(inbound_datasize);  //resize the vector
+
+      //now read the data!
+      boost::asio::async_read(
+          sock,
+          boost::asio::buffer(data_in.inbound_data_),
+          boost::bind(&con_handler::handle_read_data, shared_from_this(),
+                      boost::asio::placeholders::error,
+                      boost::asio::placeholders::bytes_transferred));
+    } else {
+      std::cerr << "error: " << err.message() << std::endl;
+      sock.close();
+    }
+  }
+
+  void handle_read_data(const boost::system::error_code& err,
+                        size_t bytes_transferred) {
+    if (!err) {
+
+      //extract data
+      std::string archive_data(&(data_in.inbound_data_[0]),
+                               data_in.inbound_data_.size());
+      std::istringstream archive_stream(archive_data);
+      boost::archive::text_iarchive archive(archive_stream);
+      archive >> data;  //deserialize
+
+      std::cout << "length:" << data.size() << " data: { ";
 
       for (auto& cmy : data)
         std::cout << cmy << ", ";

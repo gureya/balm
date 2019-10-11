@@ -8,12 +8,34 @@
 #include <boost/asio.hpp>
 #include <iostream>
 #include <vector>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <boost/serialization/vector.hpp>
 
 using namespace boost::asio;
 using ip::tcp;
 
+enum {
+  header_length = 8
+};
+//const header length
+
 struct CMYType {
   float a, b, c;
+  template<typename Archive>
+  void serialize(Archive& ar, const unsigned int version) {
+    ar & a;
+    ar & b;
+    ar & c;
+  }
+};
+
+struct network_data_in {
+  char inbound_header_[header_length];  //size of data to read
+  std::vector<char> inbound_data_;  // read data
 };
 
 static_assert(std::is_pod<CMYType>::value, "Not bitwise serializable");
@@ -35,24 +57,32 @@ void server() {
     acc.accept(sock, ec);
     std::cout << "[Server] Accepted a connection from client\n";
 
-    std::vector<CMYType> data(10);
-    std::size_t length = read(sock, buffer(data), ec);
-    if (ec == boost::asio::error::eof) {
-      std::cout << "Connection closed cleanly by peer\n";
-    } else if (ec) {
-      throw boost::system::system_error(ec);  // Some other error
-    }
+    std::vector<CMYType> data;
 
-    std::cout << "length:" << length << " data: { ";
+    network_data_in data_in;
+    size_t length;
 
+    length = read(sock, buffer(data_in.inbound_header_), ec);
+    //get size of data
+    std::istringstream is(std::string(data_in.inbound_header_, header_length));
+    std::size_t inbound_datasize = 0;
+    is >> std::hex >> inbound_datasize;
+    std::cout << " size in size_t: " << inbound_datasize << std::endl;
+
+    data_in.inbound_data_.resize(inbound_datasize);  //resize the vector
+    length = read(sock, buffer(data_in.inbound_data_), ec);
+
+    //extract data
+    std::string archive_data(&(data_in.inbound_data_[0]),
+                             data_in.inbound_data_.size());
+    std::istringstream archive_stream(archive_data);
+    boost::archive::text_iarchive archive(archive_stream);
+    archive >> data;  //deserialize
+
+    std::cout << "length:" << data.size() << " data: { ";
     for (auto& cmy : data)
       std::cout << cmy << ", ";
-
     std::cout << " }\n";
-
-   // for (int i = 0; i < data.size(); i++) {
-   //   std::cout << data.at(i).a << std::endl;
-   // }
 
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;

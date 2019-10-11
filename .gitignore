@@ -177,6 +177,9 @@ cmake_uninstall.cmake
 
 # generated executables
 BwManager
+test/boost_asio_sockets/client
+test/boost_asio_sockets/server
+test/boost_asio_sockets/AsyncServer
 
 # .txt files
 *.txt

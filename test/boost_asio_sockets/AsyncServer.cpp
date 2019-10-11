@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     std::cerr << e.what() << std::endl;
   }
 
-//If we want it to stop, then we can do the following:
+//if we want it to stop, then we can do the following:
   /* boost::optional<boost::asio::io_service::work> work = boost::in_place(
    boost::ref(io_service));
    work = boost::none;*/
