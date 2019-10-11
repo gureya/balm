@@ -16,9 +16,9 @@
 #include <vector>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
-#include <iomanip>
 #include <string>
 #include <sstream>
+#include <cstdint>
 #include <boost/serialization/vector.hpp>
 
 using namespace boost::asio;
@@ -90,7 +90,7 @@ class con_handler : public boost::enable_shared_from_this<con_handler> {
           std::string(data_in.inbound_header_, header_length));
       std::size_t inbound_datasize = 0;
       is >> std::hex >> inbound_datasize;
-      std::cout << " size in size_t: " << inbound_datasize << std::endl;
+      //std::cout << "size in size_t: " << inbound_datasize << std::endl;
 
       data_in.inbound_data_.resize(inbound_datasize);  //resize the vector
 
@@ -118,7 +118,7 @@ class con_handler : public boost::enable_shared_from_this<con_handler> {
       boost::archive::text_iarchive archive(archive_stream);
       archive >> data;  //deserialize
 
-      std::cout << "length:" << data.size() << " data: { ";
+      std::cout << "length: " << data.size() << " data: { ";
 
       for (auto& cmy : data)
         std::cout << cmy << ", ";

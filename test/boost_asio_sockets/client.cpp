@@ -14,7 +14,6 @@
 #include <boost/asio.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
-#include <iomanip>
 #include <string>
 #include <sstream>
 #include <vector>
