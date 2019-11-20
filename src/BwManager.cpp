@@ -334,12 +334,12 @@ int main(int argc, char **argv) {
   // parse and display the configuration
   read_config();
 
-  if (BWMAN_WORKERS == MAX_NODES) {
-    LINFOF("No. of workers equals MAX_NODES (%d==%d)! Exiting", BWMAN_WORKERS,
-           MAX_NODES);
-    destroy_shared_memory();
-    exit(EXIT_FAILURE);
-  }
+  /* if (BWMAN_WORKERS == MAX_NODES) {
+   LINFOF("No. of workers equals MAX_NODES (%d==%d)! Exiting", BWMAN_WORKERS,
+   MAX_NODES);
+   destroy_shared_memory();
+   exit(EXIT_FAILURE);
+   } */
 
   //set sum_ww & sum_nww & initialize the weights!
   get_sum_nww_ww(BWMAN_WORKERS);

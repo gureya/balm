@@ -42,7 +42,8 @@ char const *amd_estr = "DISPATCH_STALLS:PMC0";
 //char intel_estr[] =
 //    "CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
 //char intel_estr[] = "RESOURCE_STALLS_ANY:PMC0";  //Intel Broadwell EP, Intel Core Westmere processor
-char const *intel_estr = "RESOURCE_STALLS_ANY:PMC0";
+//char const *intel_estr = "CPU_CLK_UNHALTED_CORE:FIXC1,RESOURCE_STALLS_ANY:PMC0";
+char intel_estr[] = "CPU_CLK_UNHALTED_CORE:FIXC1,RESOURCE_STALLS_ANY:PMC0";
 //if a specific pmc has been specified override the above variables!
 
 //a function that starts counters
@@ -92,7 +93,7 @@ void initialize_likwid() {
     // Create affinity domains. Commonly only needed when reading Uncore counters
     affinity_init();
 
-    LINFOF("Likwid Measuremennts on a %s with %d CPUs\n", info->name,
+    LINFOF("Likwid Measurements on a %s with %d CPUs\n", info->name,
            topo->numHWThreads);
 
     ncpus = topo->numHWThreads;
@@ -191,15 +192,14 @@ void initialize_likwid() {
 }
 
 std::vector<double> get_stall_rate() {
-  int i;
+  int i, j;
   double result = 0.0;
 
-  //static double prev_cycles = 0;
-  //static double prev_stalls = 0;
-  static uint64_t prev_clockcounts = 0;
   static std::vector<double> prev_stalls(active_cpus, 0.0);
+  static std::vector<double> prev_cycles(active_cpus, 0.0);
 
   std::vector<double> stalls(active_cpus, 0.0);
+  std::vector<double> cycles(active_cpus, 0.0);
   std::vector<double> stall_rate(active_cpus);
 
   // Stop all counters in the previously started event set before doing a read.
@@ -207,41 +207,54 @@ std::vector<double> get_stall_rate() {
 
   // Read the result of every active thread/CPU for all events in estr.
 
-  for (i = 0; i < active_cpus; i++) {
-    result = perfmon_getResult(gid, 0, i);
-    stalls.at(i) = result;
-    //printf("Measurement result at CPU %d: %f\n", cpus[i], result);
-  }
+  //Be sure to change this, currently supports only Intel
+  int string_length = strlen(intel_estr);
+  char *intel_estr_temp = new char[string_length];
+  //char intel_estr_temp[string_length];
+  strcpy(intel_estr_temp, intel_estr);
 
-  uint64_t clock = readtsc();  // read clock
+  char *ptr = strtok(intel_estr_temp, ",");
+  j = 0;
+
+  while (ptr != NULL) {
+    //printf("%s\n", ptr);
+    for (i = 0; i < active_cpus; i++) {
+      result = perfmon_getResult(gid, j, i);
+      //printf("Measurement result for event set %s at CPU %d: %f\n", ptr,
+      //      cpus[i], result);
+      if (j == 0) {
+        cycles.at(i) = result;
+      } else {
+        stalls.at(i) = result;
+      }
+    }
+    ptr = strtok(NULL, ",");
+    j++;
+  }
 
   for (i = 0; i < active_cpus; i++) {
 
     stall_rate.at(i) = ((double) (stalls.at(i) - prev_stalls.at(i)))
-        / (clock - prev_clockcounts);
-
-    //stall_rate.at(i) = ((double) (stalls.at(i) - prev_stalls.at(i)));
-
-    /*printf(
-     "clock: %" PRIu64 " prev_clockcounts: %" PRIu64 " clock - prev_clockcounts: %" PRIu64 "\n",
-     clock, prev_clockcounts, (clock - prev_clockcounts));
+        / (cycles.at(i) - prev_cycles.at(i));
+    /* printf("CPU: %d\n", cpus[i]);
+     printf("cycles: %.0f prev_cycles: %.0f cycles - prev_cycles: %.0f\n",
+     cycles.at(i), prev_cycles.at(i), (cycles.at(i) - prev_cycles.at(i)));
      printf("stalls: %.0f prev_stalls: %.0f stalls - prev_stalls: %.0f\n",
      stalls.at(i), prev_stalls.at(i), (stalls.at(i) - prev_stalls.at(i)));
-     printf("stall_rate: %.10f\n", stall_rate.at(i));*/
+     printf("stall_rate: %.10f\n", stall_rate.at(i));
+     printf(
+     "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");*/
   }
   //printf("================================================================\n");
 
-  //prev_cycles = cycles;
   for (i = 0; i < active_cpus; i++) {
     prev_stalls.at(i) = stalls.at(i);
+    prev_cycles.at(i) = cycles.at(i);
   }
-
-  prev_clockcounts = clock;
 
   start_counters();
 
   return stall_rate;
-  //return stalls;
 }
 
 void stop_all_counters() {
