@@ -236,22 +236,23 @@ std::vector<double> get_stall_rate() {
 
     stall_rate.at(i) = ((double) (stalls.at(i) - prev_stalls.at(i)))
         / (cycles.at(i) - prev_cycles.at(i));
-    printf("CPU: %d\n", cpus[i]);
-    printf("cycles: %.0f prev_cycles: %.0f cycles - prev_cycles: %.0f\n",
-           cycles.at(i), prev_cycles.at(i), (cycles.at(i) - prev_cycles.at(i)));
-    printf("stalls: %.0f prev_stalls: %.0f stalls - prev_stalls: %.0f\n",
-           stalls.at(i), prev_stalls.at(i), (stalls.at(i) - prev_stalls.at(i)));
-    printf("stall_rate: %.10f\n", stall_rate.at(i));
-    printf(
-        "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+    /*printf("CPU: %d\n", cpus[i]);
+     printf("cycles: %.0f prev_cycles: %.0f cycles - prev_cycles: %.0f\n",
+     cycles.at(i), prev_cycles.at(i), (cycles.at(i) - prev_cycles.at(i)));
+     printf("stalls: %.0f prev_stalls: %.0f stalls - prev_stalls: %.0f\n",
+     stalls.at(i), prev_stalls.at(i), (stalls.at(i) - prev_stalls.at(i)));
+     printf("stall_rate: %.10f\n", stall_rate.at(i));
+     printf(
+     "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");*/
   }
-  printf("================================================================\n");
+  //printf("================================================================\n");
 
   for (i = 0; i < active_cpus; i++) {
     prev_stalls.at(i) = stalls.at(i);
     prev_cycles.at(i) = cycles.at(i);
   }
 
+  perfmon_setupCounters(gid);
   start_counters();
 
   return stall_rate;
@@ -328,15 +329,15 @@ std::vector<double> get_average_stall_rate(int num_measurements,
   }
 
   //for debugging purposes!!
-  printf("After Sorting\n");
-  for (j = 0; j < active_cpus; j++) {
-    printf("Measurements for App %d: ", j);
-    for (i = 0; i < (num_measurements - (num_outliers_to_filter * 2)); i++) {
-      printf("%d: %1.10lf ", i, measurements.at(j).at(i));
-    }
-    printf("\n");
-  }
-  printf("\n");
+  /* printf("After Sorting\n");
+   for (j = 0; j < active_cpus; j++) {
+   printf("Measurements for App %d: ", j);
+   for (i = 0; i < (num_measurements - (num_outliers_to_filter * 2)); i++) {
+   printf("%d: %1.10lf ", i, measurements.at(j).at(i));
+   }
+   printf("\n");
+   }
+   printf("\n");*/
 
   // return the average stall rate in a vector
   return average_stall_rate;

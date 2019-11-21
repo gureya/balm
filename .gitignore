@@ -180,6 +180,8 @@ BwManager
 test/boost_asio_sockets/client
 test/boost_asio_sockets/server
 test/boost_asio_sockets/AsyncServer
+test/HPCMonitor
+test/C-HPCMonitor
 
 # .txt files
 *.txt

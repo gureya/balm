@@ -121,17 +121,17 @@ void read_config(void) {
 void start_bw_manager() {
 
   //First read the memory segments to be moved
-  //std::vector<MySharedMemory> mem_segments = get_shared_memory();
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
 
-  //LINFOF("Number of Segments: %lu", mem_segments.size());
+  LINFOF("Number of Segments: %lu", mem_segments.size());
 
   //some sanity check
-  /*if (mem_segments.size() == 0) {
-   LINFO("No segments found! Exiting");
-   destroy_shared_memory();
-   stop_all_counters();
-   exit(EXIT_FAILURE);
-   }*/
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
 
   /*for (size_t i = 0; i < mem_segments.size(); i++) {
    printf(
@@ -192,7 +192,7 @@ void start_bw_manager() {
     //First check the stall rate of the initial weights without moving pages!
     if (i != 0) {
       //stop_counters();
-      //place_all_pages(mem_segments, i);
+      place_all_pages(mem_segments, i);
       //start_counters();
     }
 
@@ -203,47 +203,43 @@ void start_bw_manager() {
     for (j = 0; j < active_cpus; j++) {
 
       //compute the minimum stall rate @ app
-      //interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
-      //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
-      //minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
-//          LINFOF(
-//              "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
-//              j, i, stall_rate.at(j), prev_stall_rate.at(j),
-//              best_stall_rate.at(j), interval_diff.at(j),
-//              minimum_interference.at(j));
+      interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
+      interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
+      minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
+      LINFOF(
+          "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+          j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
+          interval_diff.at(j), minimum_interference.at(j));
 
-      LINFOF("App: %d Ratio: %.2f StallRate: %1.10lf", j, i, stall_rate.at(j));
-
-      //best_stall_rate.at(j) = std::min(best_stall_rate.at(j),
-      //                                 stall_rate.at(j));
+      best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
     }
 
     // Assume App 0 is memory intensive and App 1 is compute intensive
     // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
-//        if (interval_diff.at(1) > minimum_interference.at(1)) {
-//          LINFO(
-//              "Exceeded the Minimal allowable interference for App 1, continue climbing!");
-//        }
+    if (interval_diff.at(1) > minimum_interference.at(1)) {
+      LINFO(
+          "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+    }
 
-    /* else if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
-     //just make sure that its not something transient...!
-     LINFO("Hmm... Is this the best we can do?");
-     std::vector<double> stall_rate_transient = get_average_stall_rate(
-     _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
-     LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
-     if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
-     LINFO(
-     "Performance degradation for App 0: Going one step back before breaking!");
-     //before stopping go one step back and break
-     //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-     LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
-     break;
-     }
-     }*/
+    else if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
+      //just make sure that its not something transient...!
+      LINFO("Hmm... Is this the best we can do?");
+      std::vector<double> stall_rate_transient = get_average_stall_rate(
+          _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+      LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
+      if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
+        LINFO(
+            "Performance degradation for App 0: Going one step back before breaking!");
+        //before stopping go one step back and break
+        place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+        LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
+        break;
+      }
+    }
 
-//        else {
-//          LINFO("Performance improvement for App 0, continue climbing");
-//        }
+    else {
+      LINFO("Performance improvement for App 0, continue climbing");
+    }
     //At the end update previous stall rate to the current stall rate!
     for (j = 0; j < active_cpus; j++) {
       prev_stall_rate.at(j) = stall_rate.at(j);
