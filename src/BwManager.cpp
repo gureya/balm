@@ -45,6 +45,12 @@ useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
 ////////////////////////////////////////////
 
+unsigned long time_diff(struct timeval* start, struct timeval* stop) {
+  unsigned long sec_res = stop->tv_sec - start->tv_sec;
+  unsigned long usec_res = stop->tv_usec - start->tv_usec;
+  return 1000000 * sec_res + usec_res;
+}
+
 void read_config(void) {
 
   LINFOF("NUMA NODES: %d", MAX_NODES);
@@ -162,6 +168,10 @@ void start_bw_manager() {
   int j;
   bool terminate = false;
 
+  //timing parameters
+  struct timeval tstart, tend;
+  unsigned long length;
+
   get_stall_rate();
   sleep(_wait_start);
 
@@ -170,6 +180,7 @@ void start_bw_manager() {
     case 0: {
 
       LINFO("Running the adaptive-co-scheduled scenario!");
+      gettimeofday(&tstart, NULL);
       for (i = 0; !terminate; i += ADAPTATION_STEP) {
 
         if (i >= sum_nww) {
@@ -240,6 +251,9 @@ void start_bw_manager() {
       }
 
       LINFO("My work here is done! Enjoy the speedup");
+      gettimeofday(&tend, NULL);
+      length = time_diff(&tstart, &tend);
+      LINFOF("Adaptation concluded in %ldms\n", length / 1000);
     }
       break;
     case 1: {

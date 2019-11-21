@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <numa.h>
+#include <sys/time.h>
 
 #ifdef __cplusplus
 // check whether a monitoring core has been passed
