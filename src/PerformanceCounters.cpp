@@ -236,7 +236,7 @@ std::vector<double> get_stall_rate() {
 
     stall_rate.at(i) = ((double) (stalls.at(i) - prev_stalls.at(i)))
         / (cycles.at(i) - prev_cycles.at(i));
-    /* printf("CPU: %d\n", cpus[i]);
+    /*printf("CPU: %d\n", cpus[i]);
      printf("cycles: %.0f prev_cycles: %.0f cycles - prev_cycles: %.0f\n",
      cycles.at(i), prev_cycles.at(i), (cycles.at(i) - prev_cycles.at(i)));
      printf("stalls: %.0f prev_stalls: %.0f stalls - prev_stalls: %.0f\n",

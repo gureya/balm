@@ -24,8 +24,8 @@ extern int active_cpus;
 // Worker Node
 extern int BWMAN_WORKERS;
 // Maximum number of nodes in the system
-//#define MAX_NODES 8
-#define MAX_NODES numa_num_configured_nodes()
+#define MAX_NODES 2
+//#define MAX_NODES numa_num_configured_nodes()
 //the vector to hold the weghts,id pair
 extern std::vector<std::pair<double, int>> BWMAN_WEIGHTS;
 // sum of worker nodes weights
