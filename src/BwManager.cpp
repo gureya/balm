@@ -39,9 +39,9 @@ const char* monitored_cores_s;
 /////////////////////////////////////////////
 //provide this in a config
 unsigned int _wait_start = 2;
-unsigned int _num_polls = 20;
-unsigned int _num_poll_outliers = 5;
-useconds_t _poll_sleep = 200000;
+unsigned int _num_polls = 1;
+unsigned int _num_poll_outliers = 0;
+useconds_t _poll_sleep = 1000000;
 double noise_allowed = 0.05;  // 5%
 ////////////////////////////////////////////
 
@@ -175,173 +175,172 @@ void start_bw_manager() {
   get_stall_rate();
   sleep(_wait_start);
 
-  switch (bwman_mode_value) {
+  //switch (bwman_mode_value) {
 
-    case 0: {
+  //  case 0: {
 
-      LINFO("Running the adaptive-co-scheduled scenario!");
-      gettimeofday(&tstart, NULL);
-      for (i = 0; !terminate; i += ADAPTATION_STEP) {
+  LINFO("Running the adaptive-co-scheduled scenario!");
+  gettimeofday(&tstart, NULL);
+  for (i = 0; !terminate; i += ADAPTATION_STEP) {
 
-        if (i >= sum_nww) {
-          i = sum_nww;
-          terminate = true;
-        }
+    if (i >= sum_nww) {
+      i = sum_nww;
+      terminate = true;
+    }
 
-        LINFOF("Going to check a ratio of %.2f", i);
-        //First check the stall rate of the initial weights without moving pages!
-        if (i != 0) {
-          //stop_counters();
-          //place_all_pages(mem_segments, i);
-          //start_counters();
-        }
+    LINFOF("Going to check a ratio of %.2f", i);
+    //First check the stall rate of the initial weights without moving pages!
+    if (i != 0) {
+      //stop_counters();
+      //place_all_pages(mem_segments, i);
+      //start_counters();
+    }
 
-        //Measure the stall_rate of the applications
-        stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                            _num_poll_outliers);
+    //Measure the stall_rate of the applications
+    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                        _num_poll_outliers);
 
-        for (j = 0; j < active_cpus; j++) {
+    for (j = 0; j < active_cpus; j++) {
 
-          //compute the minimum stall rate @ app
-          //interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
-          //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
-          //minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
+      //compute the minimum stall rate @ app
+      //interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
+      //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
+      //minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
 //          LINFOF(
 //              "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
 //              j, i, stall_rate.at(j), prev_stall_rate.at(j),
 //              best_stall_rate.at(j), interval_diff.at(j),
 //              minimum_interference.at(j));
 
-          LINFOF("App: %d Ratio: %.2f StallRate: %1.10lf", j, i,
-                 stall_rate.at(j));
+      LINFOF("App: %d Ratio: %.2f StallRate: %1.10lf", j, i, stall_rate.at(j));
 
-          //best_stall_rate.at(j) = std::min(best_stall_rate.at(j),
-          //                                 stall_rate.at(j));
-        }
+      //best_stall_rate.at(j) = std::min(best_stall_rate.at(j),
+      //                                 stall_rate.at(j));
+    }
 
-        // Assume App 0 is memory intensive and App 1 is compute intensive
-        // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
+    // Assume App 0 is memory intensive and App 1 is compute intensive
+    // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
 //        if (interval_diff.at(1) > minimum_interference.at(1)) {
 //          LINFO(
 //              "Exceeded the Minimal allowable interference for App 1, continue climbing!");
 //        }
 
-        /* else if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
-         //just make sure that its not something transient...!
-         LINFO("Hmm... Is this the best we can do?");
-         std::vector<double> stall_rate_transient = get_average_stall_rate(
-         _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
-         LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
-         if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
-         LINFO(
-         "Performance degradation for App 0: Going one step back before breaking!");
-         //before stopping go one step back and break
-         //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-         LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
-         break;
-         }
-         }*/
+    /* else if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
+     //just make sure that its not something transient...!
+     LINFO("Hmm... Is this the best we can do?");
+     std::vector<double> stall_rate_transient = get_average_stall_rate(
+     _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+     LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
+     if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
+     LINFO(
+     "Performance degradation for App 0: Going one step back before breaking!");
+     //before stopping go one step back and break
+     //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+     LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
+     break;
+     }
+     }*/
 
 //        else {
 //          LINFO("Performance improvement for App 0, continue climbing");
 //        }
-        //At the end update previous stall rate to the current stall rate!
-        for (j = 0; j < active_cpus; j++) {
-          prev_stall_rate.at(j) = stall_rate.at(j);
-        }
-
-      }
-
-      LINFO("My work here is done! Enjoy the speedup");
-      gettimeofday(&tend, NULL);
-      length = time_diff(&tstart, &tend);
-      LINFOF("Adaptation concluded in %ldms\n", length / 1000);
+    //At the end update previous stall rate to the current stall rate!
+    for (j = 0; j < active_cpus; j++) {
+      prev_stall_rate.at(j) = stall_rate.at(j);
     }
-      break;
-      /*    case 1: {
 
-       //if(fixed_ratio_value != 0){
-       LINFOF("Going to check a fixed ratio of %d", fixed_ratio_value);
-       stop_counters();
-       place_all_pages(mem_segments, fixed_ratio_value);
-       start_counters();
-       //Measure the stall_rate of the applications
-       stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-       _num_poll_outliers);
-       LINFOF("Stall rate: %1.10f", stall_rate.at(0));
-       //}
-
-       }
-       break;
-       case 2: {
-
-       LINFO("Running the adaptive-stand-alone scenario!");
-
-       for (i = 0; !terminate; i += ADAPTATION_STEP) {
-
-       if (i >= sum_nww) {
-       i = sum_nww;
-       terminate = true;
-       }
-
-       LINFOF("Going to check a ratio of %.2f", i);
-       //First check the stall rate of the initial weights without moving pages!
-       if (i != 0) {
-       stop_counters();
-       place_all_pages(mem_segments, i);
-       start_counters();
-       }
-
-       //Measure the stall_rate of the applications
-       stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-       _num_poll_outliers);
-
-       for (j = 0; j < active_cpus; j++) {
-
-       //compute the minimum stall rate @ app
-       interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
-       //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
-       minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
-       LINFOF(
-       "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
-       j, i, stall_rate.at(j), prev_stall_rate.at(j),
-       best_stall_rate.at(j), interval_diff.at(j),
-       minimum_interference.at(j));
-
-       best_stall_rate.at(j) = std::min(best_stall_rate.at(j),
-       stall_rate.at(j));
-       }
-
-       if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
-       //just make sure that its not something transient...!
-       LINFO("Hmm... Is this the best we can do?");
-       std::vector<double> stall_rate_transient = get_average_stall_rate(
-       _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
-       LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
-       if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
-       LINFO(
-       "Performance degradation for App 0: Going one step back before breaking!");
-       //before stopping go one step back and break
-       place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-       LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
-       break;
-       }
-       }
-
-       //At the end update previous stall rate to the current stall rate!
-       for (j = 0; j < active_cpus; j++) {
-       prev_stall_rate.at(j) = stall_rate.at(j);
-       }
-
-       }
-
-       LINFO("My work here is done! Enjoy the speedup");
-       }
-       break;*/
-    default:
-      LINFO("Mode has not been specified!")
-      ;
   }
+
+  LINFO("My work here is done! Enjoy the speedup");
+  gettimeofday(&tend, NULL);
+  length = time_diff(&tstart, &tend);
+  LINFOF("Adaptation concluded in %ldms\n", length / 1000);
+  /*}
+   break;
+   case 1: {
+
+   //if(fixed_ratio_value != 0){
+   LINFOF("Going to check a fixed ratio of %d", fixed_ratio_value);
+   stop_counters();
+   place_all_pages(mem_segments, fixed_ratio_value);
+   start_counters();
+   //Measure the stall_rate of the applications
+   stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+   _num_poll_outliers);
+   LINFOF("Stall rate: %1.10f", stall_rate.at(0));
+   //}
+
+   }
+   break;
+   case 2: {
+
+   LINFO("Running the adaptive-stand-alone scenario!");
+
+   for (i = 0; !terminate; i += ADAPTATION_STEP) {
+
+   if (i >= sum_nww) {
+   i = sum_nww;
+   terminate = true;
+   }
+
+   LINFOF("Going to check a ratio of %.2f", i);
+   //First check the stall rate of the initial weights without moving pages!
+   if (i != 0) {
+   stop_counters();
+   place_all_pages(mem_segments, i);
+   start_counters();
+   }
+
+   //Measure the stall_rate of the applications
+   stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+   _num_poll_outliers);
+
+   for (j = 0; j < active_cpus; j++) {
+
+   //compute the minimum stall rate @ app
+   interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
+   //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
+   minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
+   LINFOF(
+   "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+   j, i, stall_rate.at(j), prev_stall_rate.at(j),
+   best_stall_rate.at(j), interval_diff.at(j),
+   minimum_interference.at(j));
+
+   best_stall_rate.at(j) = std::min(best_stall_rate.at(j),
+   stall_rate.at(j));
+   }
+
+   if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
+   //just make sure that its not something transient...!
+   LINFO("Hmm... Is this the best we can do?");
+   std::vector<double> stall_rate_transient = get_average_stall_rate(
+   _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+   LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
+   if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
+   LINFO(
+   "Performance degradation for App 0: Going one step back before breaking!");
+   //before stopping go one step back and break
+   place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+   LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
+   break;
+   }
+   }
+
+   //At the end update previous stall rate to the current stall rate!
+   for (j = 0; j < active_cpus; j++) {
+   prev_stall_rate.at(j) = stall_rate.at(j);
+   }
+
+   }
+
+   LINFO("My work here is done! Enjoy the speedup");
+   }
+   break;
+   default:
+   LINFO("Mode has not been specified!")
+   ;
+   }*/
 
 }
 
