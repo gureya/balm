@@ -39,9 +39,9 @@ const char* monitored_cores_s;
 /////////////////////////////////////////////
 //provide this in a config
 unsigned int _wait_start = 2;
-unsigned int _num_polls = 1;
-unsigned int _num_poll_outliers = 0;
-useconds_t _poll_sleep = 1000000;
+unsigned int _num_polls = 20;
+unsigned int _num_poll_outliers = 5;
+useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
 ////////////////////////////////////////////
 
@@ -179,6 +179,8 @@ void start_bw_manager() {
 
   //  case 0: {
 
+  best_stall_rate.at(1) = 0.7072657657;
+
   LINFO("Running the adaptive-co-scheduled scenario!");
   gettimeofday(&tstart, NULL);
   for (i = 0; !terminate; i += ADAPTATION_STEP) {
@@ -192,7 +194,7 @@ void start_bw_manager() {
     //First check the stall rate of the initial weights without moving pages!
     if (i != 0) {
       //stop_counters();
-      place_all_pages(mem_segments, i);
+      //place_all_pages(mem_segments, i);
       //start_counters();
     }
 
@@ -211,7 +213,7 @@ void start_bw_manager() {
           j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
           interval_diff.at(j), minimum_interference.at(j));
 
-      best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
+      //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
     }
 
     // Assume App 0 is memory intensive and App 1 is compute intensive
@@ -221,24 +223,28 @@ void start_bw_manager() {
           "Exceeded the Minimal allowable interference for App 1, continue climbing!");
     }
 
-    else if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001) {
+    else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001) {
       //just make sure that its not something transient...!
-      LINFO("Hmm... Is this the best we can do?");
-      std::vector<double> stall_rate_transient = get_average_stall_rate(
-          _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
-      LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
-      if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
-        LINFO(
-            "Performance degradation for App 0: Going one step back before breaking!");
-        //before stopping go one step back and break
-        place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-        LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
-        break;
-      }
+      //LINFO("Hmm... Is this the best we can do?");
+      //std::vector<double> stall_rate_transient = get_average_stall_rate(
+      //    _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+      // LINFOF("Transient stall rate: %.10lf", stall_rate_transient.at(0));
+      //if (stall_rate_transient.at(0) > (best_stall_rate.at(0) * 1.001)) {
+      //LINFO(
+      //   "Performance degradation for App 0: Going one step back before breaking!");
+      //before stopping go one step back and break
+      //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+      //LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
+      //break;
+      //}
+      LINFO("Minimal allowable interference for App 1 achieved, stop climbing!");
+      break;
     }
 
     else {
-      LINFO("Performance improvement for App 0, continue climbing");
+      LINFO("Performance improvement for App 1, continue climbing");
+      //LINFO("Minimal allowable interference for App 1 achieved, stop climbing!");
+      //break;
     }
     //At the end update previous stall rate to the current stall rate!
     for (j = 0; j < active_cpus; j++) {
