@@ -188,7 +188,8 @@ void hill_climbing_mba() {
           "Exceeded the Minimal allowable interference for App 1, continue climbing!");
     }
 
-    else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001) {
+    else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
+        || std::isnan(stall_rate.at(1))) {
       LINFO("Minimal allowable interference for App 1 achieved, stop climbing!");
       break;
     }
