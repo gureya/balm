@@ -124,8 +124,207 @@ void read_config(void) {
 void start_bw_manager() {
 
   //hill_climbing_pmigration();
-  hill_climbing_mba();
+  //hill_climbing_mba();
+  //hill_climbing_mba_10();
+  //hill_climbing_pmigration_100();
+  hill_climbing_mba_sha();
 
+}
+
+void hill_climbing_mba_10() {
+
+  std::vector<double> prev_stall_rate(active_cpus,
+                                      std::numeric_limits<double>::infinity());
+  std::vector<double> best_stall_rate(active_cpus,
+                                      std::numeric_limits<double>::infinity());
+  std::vector<double> stall_rate(active_cpus);
+  std::vector<double> interval_diff(active_cpus);
+  std::vector<double> minimum_interference(active_cpus);
+
+  int i;
+  int j;
+
+  //timing parameters
+  struct timeval tstart, tend;
+  unsigned long length;
+
+  get_stall_rate();
+  sleep(_wait_start);
+
+  best_stall_rate.at(1) = 0.4033525365;
+  LINFOF("Minimum allowable stall rate: %1.10lf", best_stall_rate.at(1))
+
+  LINFO("Running the adaptive-co-scheduled scenario!");
+  gettimeofday(&tstart, NULL);
+
+  i = 10;
+  LINFOF("Going to check an MBA of %d", i);
+  //First check the stall rate of the initial weights without moving pages!
+  char buf[32];
+  sprintf(buf, "sudo pqos -e 'mba@0:0=%d'", i);
+  system(buf);
+
+  //Measure the stall_rate of the applications
+  stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                      _num_poll_outliers);
+
+  for (j = 0; j < active_cpus; j++) {
+
+    //compute the minimum stall rate @ app
+    interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
+    interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
+    minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
+    LINFOF(
+        "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+        j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
+        interval_diff.at(j), minimum_interference.at(j));
+
+    //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
+  }
+
+  // Assume App 0 is memory intensive and App 1 is compute intensive
+  // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
+  if (interval_diff.at(1) > minimum_interference.at(1)) {
+    LINFO(
+        "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+  }
+
+  else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
+      || std::isnan(stall_rate.at(1))) {
+    LINFO("Minimal allowable interference for App 1 achieved, stop climbing!");
+  }
+
+  else {
+    LINFO("Performance improvement for App 1, continue climbing");
+  }
+  //At the end update previous stall rate to the current stall rate!
+  for (j = 0; j < active_cpus; j++) {
+    prev_stall_rate.at(j) = stall_rate.at(j);
+  }
+
+  LINFO("My work here is done! Enjoy the speedup");
+  gettimeofday(&tend, NULL);
+  length = time_diff(&tstart, &tend);
+  LINFOF("Adaptation concluded in %ldms\n", length / 1000);
+}
+
+int binary_search(int current_mba, double progress) {
+  int next_mba;
+  if (progress > 0) {
+    if (current_mba == 40)
+      next_mba = 20;
+    else if (current_mba == 20)
+      next_mba = 10;
+    else if (current_mba == 60)
+      next_mba = 50;
+    else
+      next_mba = 0;
+
+  } else if (progress < 0) {
+    if (current_mba == 40)
+      next_mba = 60;
+    else if (current_mba == 20)
+      next_mba = 30;
+    else if (current_mba == 60)
+      next_mba = 90;
+    else
+      next_mba = 0;
+  }
+
+  return next_mba;
+}
+
+void hill_climbing_mba_sha() {
+
+  std::vector<double> prev_stall_rate(active_cpus,
+                                      std::numeric_limits<double>::infinity());
+  std::vector<double> best_stall_rate(active_cpus,
+                                      std::numeric_limits<double>::infinity());
+  std::vector<double> stall_rate(active_cpus);
+  std::vector<double> interval_diff(active_cpus);
+  std::vector<double> minimum_interference(active_cpus);
+
+  int i;
+  int j;
+  double progress;
+
+  //valid MBA states: 100, 90, 60, 50, 40, 30, 20, 10
+
+  //timing parameters
+  struct timeval tstart, tend;
+  unsigned long length;
+
+  get_stall_rate();
+  sleep(_wait_start);
+
+  best_stall_rate.at(1) = 0.4033525365;
+  LINFOF("Minimum allowable stall rate: %1.10lf", best_stall_rate.at(1))
+
+  LINFO("Running the adaptive-co-scheduled scenario!");
+  gettimeofday(&tstart, NULL);
+
+  i = 40;
+  do {
+
+    if (i == 0) {
+      LINFO("Invalid MBA state, breaking!");
+      break;
+    }
+
+    LINFOF("Going to check an MBA of %d", i);
+    //First check the stall rate of the initial weights without moving pages!
+    char buf[32];
+    sprintf(buf, "sudo pqos -e 'mba@0:0=%d'", i);
+    system(buf);
+
+    //Measure the stall_rate of the applications
+    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                        _num_poll_outliers);
+
+    for (j = 0; j < active_cpus; j++) {
+
+      //compute the minimum stall rate @ app
+      interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
+      interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
+      minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
+      LINFOF(
+          "App: %d MBA level: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+          j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
+          interval_diff.at(j), minimum_interference.at(j));
+
+      //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
+    }
+
+    // Assume App 0 is memory intensive and App 1 is compute intensive
+    // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
+    /*if (interval_diff.at(1) > minimum_interference.at(1)) {
+     LINFO(
+     "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+     }
+
+     else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
+     || std::isnan(stall_rate.at(1))) {
+     LINFO("Minimal allowable interference for App 1 achieved, stop climbing!");
+     break;
+     }
+
+     else {
+     LINFO("Performance improvement for App 1, continue climbing");
+     }*/
+    //At the end update previous stall rate to the current stall rate!
+    for (j = 0; j < active_cpus; j++) {
+      prev_stall_rate.at(j) = stall_rate.at(j);
+    }
+    progress = stall_rate.at(1) - (best_stall_rate.at(1) * 1.001);
+    LINFOF("Progress: %1.10lf", progress);
+    i = binary_search(i, progress);
+
+  } while (i != 10 || i != 30 || i != 50 || i != 90);
+
+  LINFO("My work here is done! Enjoy the speedup");
+  gettimeofday(&tend, NULL);
+  length = time_diff(&tstart, &tend);
+  LINFOF("Adaptation concluded in %ldms\n", length / 1000);
 }
 
 void hill_climbing_mba() {
@@ -174,7 +373,7 @@ void hill_climbing_mba() {
       interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
       minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
       LINFOF(
-          "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+          "App: %d MBA level: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
           j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
           interval_diff.at(j), minimum_interference.at(j));
 
@@ -302,6 +501,96 @@ void hill_climbing_pmigration() {
       prev_stall_rate.at(j) = stall_rate.at(j);
     }
 
+  }
+
+  LINFO("My work here is done! Enjoy the speedup");
+  gettimeofday(&tend, NULL);
+  length = time_diff(&tstart, &tend);
+  LINFOF("Adaptation concluded in %ldms\n", length / 1000);
+}
+
+void hill_climbing_pmigration_100() {
+  //First read the memory segments to be moved
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+
+  LINFOF("Number of Segments: %lu", mem_segments.size());
+
+  //some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
+
+  std::vector<double> prev_stall_rate(active_cpus,
+                                      std::numeric_limits<double>::infinity());
+  std::vector<double> best_stall_rate(active_cpus,
+                                      std::numeric_limits<double>::infinity());
+  std::vector<double> stall_rate(active_cpus);
+  std::vector<double> interval_diff(active_cpus);
+  std::vector<double> minimum_interference(active_cpus);
+
+  double i;
+  int j;
+
+  //timing parameters
+  struct timeval tstart, tend;
+  unsigned long length;
+
+  get_stall_rate();
+  sleep(_wait_start);
+
+  best_stall_rate.at(1) = 0.4033525365;
+  LINFOF("Minimum allowable stall rate: %1.10lf", best_stall_rate.at(1))
+
+  LINFO("Running the adaptive-co-scheduled scenario!");
+  gettimeofday(&tstart, NULL);
+
+  i = sum_nww;
+
+  LINFOF("Going to check a ratio of %.2f", i);
+  //First check the stall rate of the initial weights without moving pages!
+  //stop_counters();
+  place_all_pages(mem_segments, i);
+  //start_counters();
+
+  //Measure the stall_rate of the applications
+  stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                      _num_poll_outliers);
+
+  for (j = 0; j < active_cpus; j++) {
+
+    //compute the minimum stall rate @ app
+    interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
+    interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
+    minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
+    LINFOF(
+        "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+        j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
+        interval_diff.at(j), minimum_interference.at(j));
+
+    //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
+  }
+
+  // Assume App 0 is memory intensive and App 1 is compute intensive
+  // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
+  if (interval_diff.at(1) > minimum_interference.at(1)) {
+    LINFO(
+        "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+  }
+
+  else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
+      || std::isnan(stall_rate.at(1))) {
+    LINFO("Minimal allowable interference for App 1 achieved, stop climbing!");
+  }
+
+  else {
+    LINFO("Performance improvement for App 1, continue climbing");
+  }
+  //At the end update previous stall rate to the current stall rate!
+  for (j = 0; j < active_cpus; j++) {
+    prev_stall_rate.at(j) = stall_rate.at(j);
   }
 
   LINFO("My work here is done! Enjoy the speedup");

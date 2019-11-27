@@ -39,8 +39,12 @@ extern double sum_nww;
 void start_bw_manager(void);
 void read_weights(char filename[]);
 void get_sum_nww_ww(int num_workers);
+
 void hill_climbing_pmigration(void);
 void hill_climbing_mba(void);
+void hill_climbing_mba_10(void);
+void hill_climbing_pmigration_100(void);
+void hill_climbing_mba_sha(void);
 
 #ifdef __cplusplus
 }  // extern "C"
