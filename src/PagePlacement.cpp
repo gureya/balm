@@ -41,9 +41,15 @@ void get_new_weights(double s) {
       case 1:
         // workers: 0
         if (BWMAN_WEIGHTS.at(i).second == 0) {
-          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first = round(
-              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          if (sum_ww == 0) {
+            BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+            BWMAN_WEIGHTS_temp.at(i).first = round(s);
+          } else {
+            BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+            BWMAN_WEIGHTS_temp.at(i).first = round(
+                (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          }
+
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;

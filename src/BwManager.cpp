@@ -123,11 +123,11 @@ void read_config(void) {
 
 void start_bw_manager() {
 
-  //hill_climbing_pmigration();
+  hill_climbing_pmigration();
   //hill_climbing_mba();
   //hill_climbing_mba_10();
   //hill_climbing_pmigration_100();
-  hill_climbing_mba_sha();
+  //hill_climbing_mba_sha();
 
 }
 
@@ -175,7 +175,7 @@ void hill_climbing_mba_10() {
     interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
     minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
     LINFOF(
-        "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+        "App: %d MBA Level: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
         j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
         interval_diff.at(j), minimum_interference.at(j));
 
@@ -257,7 +257,7 @@ void hill_climbing_mba_sha() {
   get_stall_rate();
   sleep(_wait_start);
 
-  best_stall_rate.at(1) = 0.4033525365;
+  best_stall_rate.at(1) = 0.6654351065;
   LINFOF("Minimum allowable stall rate: %1.10lf", best_stall_rate.at(1))
 
   LINFO("Running the adaptive-co-scheduled scenario!");
@@ -288,7 +288,7 @@ void hill_climbing_mba_sha() {
       interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
       minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
       LINFOF(
-          "App: %d MBA level: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+          "App: %d MBA level: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
           j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
           interval_diff.at(j), minimum_interference.at(j));
 
@@ -297,20 +297,19 @@ void hill_climbing_mba_sha() {
 
     // Assume App 0 is memory intensive and App 1 is compute intensive
     // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
-    /*if (interval_diff.at(1) > minimum_interference.at(1)) {
-     LINFO(
-     "Exceeded the Minimal allowable interference for App 1, continue climbing!");
-     }
+    if (interval_diff.at(1) > minimum_interference.at(1)) {
+      LINFO(
+          "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+    }
 
-     else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
-     || std::isnan(stall_rate.at(1))) {
-     LINFO("Minimal allowable interference for App 1 achieved, stop climbing!");
-     break;
-     }
+    else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
+        || std::isnan(stall_rate.at(1))) {
+      LINFO("Minimal allowable interference for App 1 achieved, stop climbing!");
+    }
 
-     else {
-     LINFO("Performance improvement for App 1, continue climbing");
-     }*/
+    else {
+      LINFO("Performance improvement for App 1, continue climbing");
+    }
     //At the end update previous stall rate to the current stall rate!
     for (j = 0; j < active_cpus; j++) {
       prev_stall_rate.at(j) = stall_rate.at(j);
@@ -347,7 +346,7 @@ void hill_climbing_mba() {
   get_stall_rate();
   sleep(_wait_start);
 
-  best_stall_rate.at(1) = 0.4033525365;
+  best_stall_rate.at(1) = 0.6654351065;
   LINFOF("Minimum allowable stall rate: %1.10lf", best_stall_rate.at(1))
 
   LINFO("Running the adaptive-co-scheduled scenario!");
@@ -373,7 +372,7 @@ void hill_climbing_mba() {
       interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
       minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
       LINFOF(
-          "App: %d MBA level: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+          "App: %d MBA level: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
           j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
           interval_diff.at(j), minimum_interference.at(j));
 
@@ -442,7 +441,7 @@ void hill_climbing_pmigration() {
   get_stall_rate();
   sleep(_wait_start);
 
-  best_stall_rate.at(1) = 0.4033525365;
+  best_stall_rate.at(1) = 0.6654351065;
   LINFOF("Minimum allowable stall rate: %1.10lf", best_stall_rate.at(1))
 
   LINFO("Running the adaptive-co-scheduled scenario!");
@@ -541,7 +540,7 @@ void hill_climbing_pmigration_100() {
   get_stall_rate();
   sleep(_wait_start);
 
-  best_stall_rate.at(1) = 0.4033525365;
+  best_stall_rate.at(1) = 0.6654351065;
   LINFOF("Minimum allowable stall rate: %1.10lf", best_stall_rate.at(1))
 
   LINFO("Running the adaptive-co-scheduled scenario!");
