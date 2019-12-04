@@ -123,7 +123,8 @@ void read_config(void) {
 
 void start_bw_manager() {
 
-  hill_climbing_pmigration();
+  //hill_climbing_pmigration();
+  hill_climbing_pmigration_v2();
   //hill_climbing_mba();
   //hill_climbing_mba_10();
   //hill_climbing_pmigration_100();
@@ -408,6 +409,135 @@ void hill_climbing_mba() {
   LINFOF("Adaptation concluded in %ldms\n", length / 1000);
 }
 
+//Starting page migration from the local weights
+void hill_climbing_pmigration_v2() {
+  //First read the memory segments to be moved
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+
+  LINFOF("Number of Segments: %lu", mem_segments.size());
+
+  //some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
+
+  std::vector<double> prev_stall_rate(active_cpus,
+                                      std::numeric_limits<double>::infinity());
+  std::vector<double> best_stall_rate(active_cpus,
+                                      std::numeric_limits<double>::infinity());
+  std::vector<double> stall_rate(active_cpus);
+  std::vector<double> interval_diff(active_cpus);
+  std::vector<double> minimum_interference(active_cpus);
+
+  double i;
+  int j;
+
+  //timing parameters
+  struct timeval tstart, tend;
+  unsigned long length;
+
+  get_stall_rate();
+  sleep(_wait_start);
+
+  LINFO("Running the adaptive-co-scheduled scenario!");
+  gettimeofday(&tstart, NULL);
+  for (i = 0; i <= 100; i += ADAPTATION_STEP) {
+
+    LINFOF("Going to check a ratio of %.2f", i);
+    //First check the stall rate of the initial weights without moving pages!
+    if (i != 0) {
+      //stop_counters();
+      place_all_pages(mem_segments, i);
+      //start_counters();
+    }
+
+    //Measure the stall_rate of the applications
+    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                        _num_poll_outliers);
+
+    for (j = 0; j < active_cpus; j++) {
+
+      //compute the minimum stall rate @ app
+      // App 0: BE, App 1: HP
+      interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
+      interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
+      minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
+      LINFOF(
+          "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+          j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
+          interval_diff.at(j), minimum_interference.at(j));
+
+      best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
+    }
+
+    // Assume App 0 is memory intensive (Best-Effort) and App 1 is compute intensive (High-Priority)!
+    // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
+    if (interval_diff.at(1) > minimum_interference.at(1)) {
+      LINFO("Hmm...Is this really an interference?")
+      std::vector<double> confirm_stall_rate_0 = get_average_stall_rate(
+          _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+      double interval_diff_0 = confirm_stall_rate_0.at(1)
+          - prev_stall_rate.at(1);
+      interval_diff_0 = round(interval_diff_0 * 100) / 100;
+      double minimum_interference_0 = (noise_allowed * prev_stall_rate.at(1));
+      if (interval_diff_0 > minimum_interference_0) {
+        LINFO("I guess so!");
+        if (i != 0) {
+          LINFO("Going one step back before breaking!");
+          place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+          LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
+        } else {
+          LINFOF("Final Ratio: %.2f", i);
+        }
+        LINFO(
+            "[Phase 1]: Exceeded the Minimal allowable interference for App 1, continue climbing!");
+        break;
+      }
+    }
+
+    else if (stall_rate.at(0) > best_stall_rate.at(0) * 1.001
+        || std::isnan(stall_rate.at(0))) {
+      // just make sure that its not something transient...!
+      LINFO("Hmm... Is this the best we can do?");
+      std::vector<double> confirm_stall_rate = get_average_stall_rate(
+          _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+      if (confirm_stall_rate.at(0) > best_stall_rate.at(0) * 1.001
+          || std::isnan(confirm_stall_rate.at(0))) {
+        LINFO("I guess so!");
+        if (i != 0) {
+          LINFO("Going one step back before breaking!");
+          place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+          LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
+        } else {
+          LINFOF("Final Ratio: %.2f", i);
+        }
+        LINFO(
+            "[Phase 2]: Minimal allowable interference for App 1 achieved, stop climbing!");
+        break;
+      }
+    }
+
+    else {
+      LINFO(
+          "[Phase 1 & 2]: Performance improvement for App 0 without interfering App 1, continue climbing");
+    }
+    //At the end update previous stall rate to the current stall rate!
+    for (j = 0; j < active_cpus; j++) {
+      prev_stall_rate.at(j) = stall_rate.at(j);
+    }
+
+  }
+
+  LINFO("My work here is done! Enjoy the speedup");
+  gettimeofday(&tend, NULL);
+  length = time_diff(&tstart, &tend);
+  LINFOF("Adaptation concluded in %ldms\n", length / 1000);
+}
+
+//Starting page migration from the canonical weights!
 void hill_climbing_pmigration() {
   //First read the memory segments to be moved
   std::vector<MySharedMemory> mem_segments = get_shared_memory();
@@ -476,10 +606,10 @@ void hill_climbing_pmigration() {
           j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
           interval_diff.at(j), minimum_interference.at(j));
 
-      //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
+      best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
     }
 
-    // Assume App 0 is memory intensive and App 1 is compute intensive
+    // Assume App 0 is memory intensive (Best-Effort) and App 1 is compute intensive (High-Priority)!
     // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
     if (interval_diff.at(1) > minimum_interference.at(1)) {
       LINFO(

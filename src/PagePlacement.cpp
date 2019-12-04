@@ -28,6 +28,57 @@ int check_sum(std::vector<std::pair<double, int>> n) {
   return std::lround(sum);
 }
 
+// Calculate the new weights with respect to the new ratio (not considering sum_ww & sum_nww)!
+void get_new_weights_v2(double s) {
+
+  int i = 0;
+  double sum = 0;
+
+  for (i = 0; i < MAX_NODES; i++) {
+    switch (BWMAN_WORKERS) {
+      case 1:
+        // workers: 0
+        if (BWMAN_WEIGHTS.at(i).second == 0) {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(BWMAN_WEIGHTS.at(i).first - s);
+
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        } else {
+          BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
+          BWMAN_WEIGHTS_temp.at(i).first = round(s);
+          sum += BWMAN_WEIGHTS_temp.at(i).first;
+        }
+        break;
+      default:
+        LINFOF("Sorry, %d Worker nodes is not supported at the moment!\n",
+               BWMAN_WORKERS)
+        ;
+        exit(-1);
+    }
+  }
+
+  //sort the vector in ascending order just incase it gets unordered
+  sort(BWMAN_WEIGHTS_temp.begin(), BWMAN_WEIGHTS_temp.end());
+
+  printf("%.2f\n", sum);
+
+  printf("New Weights: \t");
+  for (i = 0; i < MAX_NODES; i++) {
+    printf("%d : %.2f\t", BWMAN_WEIGHTS_temp.at(i).second,
+           BWMAN_WEIGHTS_temp.at(i).first);
+  }
+  printf("\n");
+
+  if ((check_sum(BWMAN_WEIGHTS_temp)) != 100) {
+    printf("**Sum of New weights must be equal to 100, sum=%d!**\n",
+           check_sum(BWMAN_WEIGHTS_temp));
+    exit(-1);
+  }
+
+  printf(
+      "===========================================================================\n");
+}
+
 // Calculate the new weights with respect to the new ratio!
 void get_new_weights(double s) {
 
@@ -176,7 +227,8 @@ void get_node_mappings(int page_count, int *nodes) {
 }
 
 void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
-  get_new_weights(r);
+  //get_new_weights(r);
+  get_new_weights_v2(r);
 #pragma omp parallel for
   for (size_t i = 0; i < mem_segments.size(); i++) {
     move_pages_remote(mem_segments.at(i).processID,

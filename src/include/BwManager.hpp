@@ -45,6 +45,7 @@ void hill_climbing_mba(void);
 void hill_climbing_mba_10(void);
 void hill_climbing_pmigration_100(void);
 void hill_climbing_mba_sha(void);
+void hill_climbing_pmigration_v2(void);
 
 #ifdef __cplusplus
 }  // extern "C"
