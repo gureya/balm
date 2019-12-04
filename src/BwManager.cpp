@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <cmath>
+#include <csignal>
 
 #include <stdlib.h>
 
@@ -54,6 +55,15 @@ unsigned long time_diff(struct timeval* start, struct timeval* stop) {
   return 1000000 * sec_res + usec_res;
 }
 
+void signalHandler(int signum) {
+  LINFOF("Interrupt signal %d received", signum);
+  // cleanup and close up stuff here
+  // terminate program
+  destroy_shared_memory();
+  stop_all_counters();
+  exit(signum);
+}
+
 void read_config(void) {
 
   LINFOF("NUMA NODES: %d", MAX_NODES);
@@ -88,7 +98,7 @@ void read_config(void) {
     active_cpus = BWMAN_CORES.size();
 
   } else {
-    LINFO("At least provide 1 monitored core!");
+    LINFO("At least provide 1 monitored core! e.g. BWMAN_CORES=0,10");
     exit(EXIT_FAILURE);
   }
 
@@ -729,6 +739,9 @@ void hill_climbing_pmigration_100() {
 }
 
 int main(int argc, char **argv) {
+
+  // register signal SIGINT and signal handler
+  signal(SIGINT, signalHandler);
 
   // parse and display the configuration
   read_config();
