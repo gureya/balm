@@ -329,6 +329,8 @@ void hill_climbing_pmigration_v2() {
   std::vector<double> interval_diff(active_cpus);
   std::vector<double> minimum_interference(active_cpus);
 
+  double final_ratio;
+
   double i;
   int j;
 
@@ -386,8 +388,10 @@ void hill_climbing_pmigration_v2() {
           LINFO("Going one step back before breaking!");
           place_all_pages(mem_segments, (i - ADAPTATION_STEP));
           LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
+          final_ratio = i - ADAPTATION_STEP;
         } else {
           LINFOF("Final Ratio: %.2f", i);
+          final_ratio = i;
         }
         LINFO(
             "[Phase 1]: Exceeded the Minimal allowable interference for App 1, continue climbing!");
@@ -408,8 +412,10 @@ void hill_climbing_pmigration_v2() {
           LINFO("Going one step back before breaking!");
           place_all_pages(mem_segments, (i - ADAPTATION_STEP));
           LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
+          final_ratio = i - ADAPTATION_STEP;
         } else {
           LINFOF("Final Ratio: %.2f", i);
+          final_ratio = i;
         }
         LINFO(
             "[Phase 2]: Minimal allowable interference for App 1 achieved, stop climbing!");

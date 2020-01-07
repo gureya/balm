@@ -18,7 +18,4 @@ void hill_climbing_pmigration_100(void);
 void hill_climbing_mba_sha(void);
 void hill_climbing_pmigration_v2(void);
 
-
-
-
 #endif /* INCLUDE_UTILITIES_HPP_ */

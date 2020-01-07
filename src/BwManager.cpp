@@ -111,7 +111,8 @@ void read_config(void) {
     char* weights = getenv("BWMAN_WEIGHTS");
     read_weights(weights);
   } else {
-    LDEBUG("Sorry, Weights have not been provided! e.g. BWMAN_WEIGHTS=weights/weights_1.txt");
+    LDEBUG(
+        "Sorry, Weights have not been provided! e.g. BWMAN_WEIGHTS=weights/weights_1.txt");
     exit(EXIT_FAILURE);
   }
 
