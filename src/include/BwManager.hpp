@@ -37,15 +37,7 @@ extern double sum_nww;
 #define ADAPTATION_STEP 10  // E.g. Move 10% of shared pages to the worker nodes
 
 void start_bw_manager(void);
-void read_weights(char filename[]);
-void get_sum_nww_ww(int num_workers);
 
-void hill_climbing_pmigration(void);
-void hill_climbing_mba(void);
-void hill_climbing_mba_10(void);
-void hill_climbing_pmigration_100(void);
-void hill_climbing_mba_sha(void);
-void hill_climbing_pmigration_v2(void);
 
 #ifdef __cplusplus
 }  // extern "C"
