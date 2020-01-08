@@ -21,7 +21,20 @@ useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
 ////////////////////////////////////////////
 
+static int run = 1;
+static int sleeptime = 5;
+
 using namespace std;
+
+void signalHandler(int signum) {
+  LINFOF("Interrupt signal %d received", signum);
+  // cleanup and close up stuff here
+  // terminate program
+  destroy_shared_memory();
+  stop_all_counters();
+  run = 0;
+  exit(signum);
+}
 
 unsigned long time_diff(struct timeval* start, struct timeval* stop) {
   unsigned long sec_res = stop->tv_sec - start->tv_sec;
@@ -438,6 +451,32 @@ void hill_climbing_pmigration_v2() {
   gettimeofday(&tend, NULL);
   length = time_diff(&tstart, &tend);
   LINFOF("Adaptation concluded in %ldms\n", length / 1000);
+
+  while (run) {
+
+    //Measure the stall_rate of the applications
+    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                        _num_poll_outliers);
+
+    for (j = 0; j < active_cpus; j++) {
+
+      //compute the minimum stall rate @ app
+      // App 0: BE, App 1: HP
+      interval_diff.at(j) = stall_rate.at(j) - prev_stall_rate.at(j);
+      interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
+      minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
+      LINFOF(
+          "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
+          j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
+          interval_diff.at(j), minimum_interference.at(j));
+
+      //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
+    }
+
+    sleep(sleeptime);
+
+  }
+
 }
 
 //Starting page migration from the canonical weights!
@@ -539,6 +578,7 @@ void hill_climbing_pmigration() {
   gettimeofday(&tend, NULL);
   length = time_diff(&tstart, &tend);
   LINFOF("Adaptation concluded in %ldms\n", length / 1000);
+
 }
 
 void hill_climbing_pmigration_100() {

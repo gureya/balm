@@ -41,15 +41,6 @@ int active_cpus;
 
 const char* monitored_cores_s;
 
-void signalHandler(int signum) {
-  LINFOF("Interrupt signal %d received", signum);
-  // cleanup and close up stuff here
-  // terminate program
-  destroy_shared_memory();
-  stop_all_counters();
-  exit(signum);
-}
-
 void read_config(void) {
 
   LINFOF("NUMA NODES: %d", MAX_NODES);
