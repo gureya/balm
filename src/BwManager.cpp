@@ -73,6 +73,11 @@ void read_config(void) {
     cout << endl;
 
     active_cpus = BWMAN_CORES.size();
+    if (active_cpus < 2) {
+      LINFO(
+          "At least provide 2 monitoring cores (co-scheduled applications > 2)");
+      exit(EXIT_FAILURE);
+    }
 
   } else {
     LINFO("At least provide 1 monitored core! e.g. BWMAN_CORES=0,10");
@@ -111,8 +116,9 @@ void read_config(void) {
 
 void start_bw_manager() {
 
+  periodic_monitor();
   //hill_climbing_pmigration();
-  hill_climbing_pmigration_v2();
+  //hill_climbing_pmigration_v2();
   //hill_climbing_mba();
   //hill_climbing_mba_10();
   //hill_climbing_pmigration_100();
