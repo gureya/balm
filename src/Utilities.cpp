@@ -49,7 +49,7 @@ unsigned long time_diff(struct timeval* start, struct timeval* stop) {
  */
 void periodic_monitor() {
 
-  double current_remote_ratio = 0;
+  int current_remote_ratio = 0;
   int optimal_mba = 100;
   double target_stall_rate;
 
@@ -100,8 +100,8 @@ void periodic_monitor() {
 }
 
 /*
- * Get the SLO target of the high-prio task at any particular point in time
- * Set MBA to the minimum value and measure
+ * Get the SLO target of the high-priority task at any particular point in time
+ * Set MBA to the minimum value and measure the current stall_rate
  * After measuring set MBA to the maximum value
  *
  */
@@ -196,9 +196,9 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio) {
   std::vector<double> stall_rate(active_cpus);
   int i;
 
-  for (i = current_remote_ratio; i <= 0; i -= ADAPTATION_STEP) {
+  for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
 
-    LINFOF("Going to check a ratio of %.2f", i);
+    LINFOF("Going to check a ratio of %d", i);
     //place_all_pages(mem_segments, i);
 
     //Measure the stall_rate of the applications
@@ -263,10 +263,8 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio) {
       if (i != 0) {
         LINFO("Going one step back before breaking!");
         //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-        //LINFOF("Current remote ratio: %d", (i - ADAPTATION_STEP));
         current_remote_ratio = i - ADAPTATION_STEP;
       } else {
-        //LINFOF("Current remote ratio: %.2f", i);
         current_remote_ratio = i;
       }
       break;
@@ -281,10 +279,8 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio) {
       if (i != 0) {
         LINFO("Going one step back before breaking!");
         //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-        //LINFOF("Final Ratio: %.2f", (i - ADAPTATION_STEP));
         current_remote_ratio = i - ADAPTATION_STEP;
       } else {
-        //LINFOF("Final Ratio: %.2f", i);
         current_remote_ratio = i;
       }
       break;
