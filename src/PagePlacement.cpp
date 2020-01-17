@@ -341,11 +341,6 @@ void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
 void move_pages_remote(pid_t pid, void *start, unsigned long len,
                        double remote_ratio) {
 
-  /*if (!weight_initialized) {
-   get_new_weights(remote_ratio);
-   weight_initialized = true;
-   }*/
-
   pagesize = numa_pagesize();
 
   char *pages;

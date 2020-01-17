@@ -18,7 +18,7 @@
 // number of workers
 static bool OPT_NUM_WORKERS = false;
 bool MONITORED_CORES = false;
-static bool WEIGHTS = false;
+//static bool WEIGHTS = false;
 bool BWMAN_MODE = false;
 bool FIXED_RATIO = false;
 
@@ -102,28 +102,20 @@ void read_config(void) {
   }
   LINFOF("FIXED_RATIO: %.2f", fixed_ratio_value);
 
-  WEIGHTS = getenv("BWMAN_WEIGHTS") != nullptr;
-  if (WEIGHTS) {
-    char* weights = getenv("BWMAN_WEIGHTS");
-    read_weights(weights);
-  } else {
-    LDEBUG(
-        "Sorry, Weights have not been provided! e.g. BWMAN_WEIGHTS=weights/weights_1.txt");
-    exit(EXIT_FAILURE);
-  }
+  /*WEIGHTS = getenv("BWMAN_WEIGHTS") != nullptr;
+   if (WEIGHTS) {
+   char* weights = getenv("BWMAN_WEIGHTS");
+   read_weights(weights);
+   } else {
+   LDEBUG(
+   "Sorry, Weights have not been provided! e.g. BWMAN_WEIGHTS=weights/weights_1.txt");
+   exit(EXIT_FAILURE);
+   }*/
 
 }
 
 void start_bw_manager() {
-
   periodic_monitor();
-  //hill_climbing_pmigration();
-  //hill_climbing_pmigration_v2();
-  //hill_climbing_mba();
-  //hill_climbing_mba_10();
-  //hill_climbing_pmigration_100();
-  //hill_climbing_mba_sha();
-
 }
 
 int main(int argc, char **argv) {
@@ -142,8 +134,7 @@ int main(int argc, char **argv) {
    } */
 
   //set sum_ww & sum_nww & initialize the weights!
-  get_sum_nww_ww(BWMAN_WORKERS);
-
+  //get_sum_nww_ww(BWMAN_WORKERS);
   // initialize likwid
   initialize_likwid();
 
