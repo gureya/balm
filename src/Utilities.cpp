@@ -237,7 +237,7 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio) {
   std::vector<double> stall_rate(active_cpus);
   int i;
 
-  for (i = current_remote_ratio; i > 0; i -= ADAPTATION_STEP) {
+  for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
 
     LINFOF("Going to check a ratio of %d", i);
     //place_all_pages(mem_segments, i);
