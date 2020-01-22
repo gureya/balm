@@ -95,7 +95,7 @@ void periodic_monitor() {
 
       if (current_remote_ratio != 0) {
         //Enforce MBA
-        optimal_mba = search_optimal_mba(target_stall_rate);
+        optimal_mba = search_optimal_mba(target_stall_rate, optimal_mba);
 
         //Enforce Lazy Page migration while releasing MBA
         while (optimal_mba != 100) {
@@ -183,11 +183,10 @@ double get_target_stall_rate() {
  *
  */
 
-int search_optimal_mba(double target_stall_rate) {
+int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
 
   int i;
   double progress;
-  int optimal_mba;
 
   std::vector<double> stall_rate(active_cpus);
 
@@ -198,7 +197,7 @@ int search_optimal_mba(double target_stall_rate) {
 
     if (i == 0) {
       LINFO("End of valid MBA states, breaking!");
-      optimal_mba = previous_mba;
+      current_optimal_mba = previous_mba;
       break;
     }
 
@@ -207,11 +206,18 @@ int search_optimal_mba(double target_stall_rate) {
     //Measure the stall_rate of the applications after enforcing MBA
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
+    //sanity checker
+    if (std::isnan(stall_rate.at(HP))) {
+      LINFO("NAN target stall rate, revert to the previous state and break!");
+      apply_mba(current_optimal_mba);
+      current_optimal_mba = i;
+      break;
+    }
 
     if (stall_rate.at(HP) <= target_stall_rate) {
       LINFOF("SLO has been achieved: target: %.10lf, current: %.10lf",
-             target_stall_rate, stall_rate.at(1));
-      optimal_mba = i;
+             target_stall_rate, stall_rate.at(HP));
+      current_optimal_mba = i;
       break;
     }
 
@@ -224,11 +230,11 @@ int search_optimal_mba(double target_stall_rate) {
     LINFOF("Progress: %.10lf", progress);
     previous_mba = i;
     i = mba_binary_search(i, progress);
-    optimal_mba = i;
+    current_optimal_mba = i;
   }
 
-  LINFOF("Optimal MBA value: %d", optimal_mba);
-  return optimal_mba;
+  LINFOF("Optimal MBA value: %d", current_optimal_mba);
+  return current_optimal_mba;
 }
 
 /*
@@ -240,7 +246,7 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio) {
   std::vector<double> stall_rate(active_cpus);
   int i;
 
-  for (i = current_remote_ratio; i > 0; i -= ADAPTATION_STEP) {
+  for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
 
     LINFOF("Going to check a ratio of %d", i);
     //place_all_pages(mem_segments, i);
@@ -249,8 +255,16 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio) {
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
-    if (stall_rate.at(HP) <= target_stall_rate) {
+    //sanity check
+    if (std::isnan(stall_rate.at(HP))) {
+      LINFOF(
+          "NAN HP stall rate (STOP page migration): target: %.10lf, current: %.10lf",
+          target_stall_rate, stall_rate.at(HP));
+      current_remote_ratio = i;
+      break;
+    }
 
+    if (stall_rate.at(HP) <= target_stall_rate) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
@@ -298,7 +312,8 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio) {
                                       stall_rate.at(BE));
 
     //First check if we are violating the SLO
-    if (stall_rate.at(HP) > target_stall_rate * 1.001) {
+    if (!std::isnan(stall_rate.at(HP))
+        && stall_rate.at(HP) > target_stall_rate * 1.001) {
 
       LINFOF("SLO has been violated target: %.10lf, current: %.10lf",
              target_stall_rate, stall_rate.at(HP));
@@ -363,7 +378,8 @@ int release_mba(int optimal_mba, double target_stall_rate,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
-    if (stall_rate.at(HP) > target_stall_rate && current_remote_ratio != 0) {
+    if (!std::isnan(stall_rate.at(HP)) && stall_rate.at(HP) > target_stall_rate
+        && current_remote_ratio != 0) {
       LINFOF(
           "SLO violation has been detected (STOP releasing MBA): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
@@ -429,7 +445,7 @@ int mba_binary_search(int current_mba, double progress) {
 
 void bw_manager_test() {
   int current_remote_ratio = 0;
-  int optimal_mba = 100;
+  int current_optimal_mba = 100;
   double target_stall_rate;
 
   std::vector<double> stall_rate(active_cpus);
@@ -453,7 +469,8 @@ void bw_manager_test() {
   LINFO("==============================================");
   LINFO("TESTING search_optimal_mba function");
   LINFO("----------------------------------------------");
-  optimal_mba = search_optimal_mba(target_stall_rate);
+  current_optimal_mba = search_optimal_mba(target_stall_rate,
+                                           current_optimal_mba);
 
   target_stall_rate = 10.001;  //some fake value
   LINFO("==============================================");
@@ -473,9 +490,12 @@ void bw_manager_test() {
   LINFO("==============================================");
   LINFO("TESTING release_mba function");
   LINFO("----------------------------------------------");
-  optimal_mba = release_mba(optimal_mba, target_stall_rate,
-                            current_remote_ratio);
+  current_optimal_mba = release_mba(current_optimal_mba, target_stall_rate,
+                                    current_remote_ratio);
 
+  LINFO("==============================================");
+  LINFOF("FINAL VALUES: current_optimal_mba: %d, current_remote_ratio: %d",
+         current_optimal_mba, current_remote_ratio);
 }
 
 /*
