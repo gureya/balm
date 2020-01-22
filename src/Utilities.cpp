@@ -192,10 +192,13 @@ int search_optimal_mba(double target_stall_rate) {
   std::vector<double> stall_rate(active_cpus);
 
   i = 40;
-  do {
+  int previous_mba = 40;
+
+  while (i != 10 || i != 30 || i != 50 || i != 90) {
 
     if (i == 0) {
-      LINFO("Invalid MBA state, breaking!");
+      LINFO("End of valid MBA states, breaking!");
+      optimal_mba = previous_mba;
       break;
     }
 
@@ -208,6 +211,7 @@ int search_optimal_mba(double target_stall_rate) {
     if (stall_rate.at(HP) <= target_stall_rate) {
       LINFOF("SLO has been achieved: target: %.10lf, current: %.10lf",
              target_stall_rate, stall_rate.at(1));
+      optimal_mba = i;
       break;
     }
 
@@ -218,13 +222,12 @@ int search_optimal_mba(double target_stall_rate) {
 
     progress = stall_rate.at(HP) - target_stall_rate;
     LINFOF("Progress: %.10lf", progress);
+    previous_mba = i;
     i = mba_binary_search(i, progress);
+    optimal_mba = i;
+  }
 
-  } while (i != 10 || i != 30 || i != 50 || i != 90);
-
-  optimal_mba = i;
   LINFOF("Optimal MBA value: %d", optimal_mba);
-
   return optimal_mba;
 }
 
@@ -237,7 +240,7 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio) {
   std::vector<double> stall_rate(active_cpus);
   int i;
 
-  for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
+  for (i = current_remote_ratio; i > 0; i -= ADAPTATION_STEP) {
 
     LINFOF("Going to check a ratio of %d", i);
     //place_all_pages(mem_segments, i);
@@ -251,17 +254,17 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
+      current_remote_ratio = i;
       break;
     } else {
-
       LINFOF(
           "SLO has NOT been achieved (CONTINUE page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
+      current_remote_ratio = i;
     }
 
   }
 
-  current_remote_ratio = i;
   LINFOF("Current remote ratio: %d", current_remote_ratio);
   return current_remote_ratio;
 }
@@ -417,6 +420,62 @@ int mba_binary_search(int current_mba, double progress) {
   }
 
   return next_mba;
+}
+
+/*
+ * A function to test individual components of the project
+ *
+ */
+
+void bw_manager_test() {
+  int current_remote_ratio = 0;
+  int optimal_mba = 100;
+  double target_stall_rate;
+
+  std::vector<double> stall_rate(active_cpus);
+  std::vector<double> prev_stall_rate(active_cpus,
+                                      std::numeric_limits<double>::infinity());
+
+  LINFO("==============================================");
+  LINFO("TESTING get_target_stall_rate function");
+  LINFO("----------------------------------------------");
+  target_stall_rate = get_target_stall_rate();
+  LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
+
+  target_stall_rate = 0.001;  //some fake value
+  //Measure the stall_rate of the applications
+  stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                      _num_poll_outliers);
+
+  LINFOF("Stall rate: target: %.10lf, current: %.10lf", target_stall_rate,
+         stall_rate.at(HP));
+
+  LINFO("==============================================");
+  LINFO("TESTING search_optimal_mba function");
+  LINFO("----------------------------------------------");
+  optimal_mba = search_optimal_mba(target_stall_rate);
+
+  target_stall_rate = 10.001;  //some fake value
+  LINFO("==============================================");
+  LINFO("TESTING apply_pagemigration_lr function");
+  LINFO("----------------------------------------------");
+  current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
+                                                current_remote_ratio);
+
+  target_stall_rate = 0.001;  //some fake value
+  LINFO("==============================================");
+  LINFO("TESTING apply_pagemigration_rl function");
+  LINFO("----------------------------------------------");
+  current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
+                                                current_remote_ratio);
+
+  target_stall_rate = 10.001;  //some fake value
+  LINFO("==============================================");
+  LINFO("TESTING release_mba function");
+  LINFO("----------------------------------------------");
+  optimal_mba = release_mba(optimal_mba, target_stall_rate,
+                            current_remote_ratio);
+
 }
 
 /*

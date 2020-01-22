@@ -29,5 +29,6 @@ int release_mba(int optimal_mba, double target_stall_rate,
                 int current_remote_ratio);
 
 void signalHandler(int signum);
+void bw_manager_test();
 
 #endif /* INCLUDE_UTILITIES_HPP_ */
