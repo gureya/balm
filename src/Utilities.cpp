@@ -19,6 +19,7 @@ unsigned int _num_polls = 20;
 unsigned int _num_poll_outliers = 5;
 useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
+double delta = 0.003;  // operational region of the controller
 ////////////////////////////////////////////
 
 static int run = 1;
@@ -88,10 +89,17 @@ void periodic_monitor() {
                                         _num_poll_outliers);
 
     if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) > target_stall_rate * 1.001) {
+        && stall_rate.at(HP) >= target_stall_rate * (1 - delta)
+        && stall_rate.at(HP) <= target_stall_rate * (1 + delta)) {
+      LINFO("Nothing can be done (SLO within the operation region)");
+    }
 
-      LINFOF("SLO has been violated target: %.10lf, current: %.10lf",
-             target_stall_rate, stall_rate.at(HP));
+    else if (!std::isnan(stall_rate.at(HP))
+        && stall_rate.at(HP) > target_stall_rate * (1 + delta)) {
+
+      LINFOF(
+          "SLO has been violated (ABOVE operation region) target: %.10lf, current: %.10lf",
+          target_stall_rate, stall_rate.at(HP));
 
       if (current_remote_ratio != 0) {
         //Enforce MBA
@@ -113,10 +121,13 @@ void periodic_monitor() {
             "Nothing can be done about SLO violation (Change in workload!), Find new target SLO!");
       }
 
-    } else {
+    }
 
-      LINFOF("SLO has NOT been violated target: %.10lf, current: %.10lf",
-             target_stall_rate, stall_rate.at(HP));
+    else {
+
+      LINFOF(
+          "SLO has NOT been violated (BELOW operation region) target: %.10lf, current: %.10lf",
+          target_stall_rate, stall_rate.at(HP));
 
       /*
        * Optimize page migration either way (local to remote and vice versa)!
@@ -144,6 +155,7 @@ void periodic_monitor() {
     //TODO: This has to be debugged - stall rate has changed during the previous iterations!
     prev_stall_rate = stall_rate;
 
+    LINFOF("Sleeping for %d before the next iteration", sleeptime);
     sleep(sleeptime);
   }
 
@@ -153,6 +165,11 @@ void periodic_monitor() {
  * Get the target SLO of the high-priority task at any particular point in time
  * Set MBA to the minimum value and measure the current stall_rate
  * After measuring set MBA to the maximum value
+ *
+ * Handling memory-intensive applications:
+ * You can use the STOP signal to pause a process, and CONT to resume its execution:
+ * kill -STOP ${PID}
+ * kill -CONT ${PID}
  *
  */
 double get_target_stall_rate(int current_remote_ratio) {
@@ -271,7 +288,7 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
       break;
     }
 
-    if (stall_rate.at(HP) <= target_stall_rate) {
+    if (stall_rate.at(HP) <= target_stall_rate * (1 + delta)) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
@@ -337,10 +354,12 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
     }
 
     //then check if there is any performance improvement for BE
-    else if (stall_rate.at(BE) > best_stall_rate.at(BE) * 1.001
+    else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 + delta)
         || std::isnan(stall_rate.at(BE))) {
 
       LINFO("No performance improvement for the BE");
+      LINFOF("best: %.10lf, current: %.10lf", best_stall_rate.at(BE),
+             stall_rate.at(BE));
       if (i != 0) {
         LINFO("Going one step back before breaking!");
         place_all_pages(mem_segments, (i - ADAPTATION_STEP));
@@ -387,7 +406,8 @@ int release_mba(int optimal_mba, double target_stall_rate,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
-    if (!std::isnan(stall_rate.at(HP)) && stall_rate.at(HP) > target_stall_rate
+    if (!std::isnan(stall_rate.at(HP))
+        && stall_rate.at(HP) > target_stall_rate * (1 + delta)
         && current_remote_ratio != 0) {
       LINFOF(
           "SLO violation has been detected (STOP releasing MBA): target: %.10lf, current: %.10lf",
