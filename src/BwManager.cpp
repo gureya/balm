@@ -18,7 +18,7 @@
 // number of workers
 static bool OPT_NUM_WORKERS = false;
 bool MONITORED_CORES = false;
-//static bool WEIGHTS = false;
+static bool WEIGHTS = false;
 bool BWMAN_MODE = false;
 bool FIXED_RATIO = false;
 
@@ -102,15 +102,15 @@ void read_config(void) {
   }
   LINFOF("FIXED_RATIO: %.2f", fixed_ratio_value);
 
-  /*WEIGHTS = getenv("BWMAN_WEIGHTS") != nullptr;
-   if (WEIGHTS) {
-   char* weights = getenv("BWMAN_WEIGHTS");
-   read_weights(weights);
-   } else {
-   LDEBUG(
-   "Sorry, Weights have not been provided! e.g. BWMAN_WEIGHTS=weights/weights_1.txt");
-   exit(EXIT_FAILURE);
-   }*/
+  WEIGHTS = getenv("BWMAN_WEIGHTS") != nullptr;
+  if (WEIGHTS) {
+    char* weights = getenv("BWMAN_WEIGHTS");
+    read_weights(weights);
+  } else {
+    LDEBUG(
+        "Sorry, Weights have not been provided! e.g. BWMAN_WEIGHTS=weights/weights_1.txt");
+    exit(EXIT_FAILURE);
+  }
 
 }
 

@@ -101,7 +101,8 @@ void periodic_monitor() {
         while (optimal_mba != 100) {
           //apply page migration
           current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
-                                                        current_remote_ratio);
+                                                        current_remote_ratio,
+                                                        mem_segments);
           //release MBA
           optimal_mba = release_mba(optimal_mba, target_stall_rate,
                                     current_remote_ratio);
@@ -130,10 +131,12 @@ void periodic_monitor() {
 
       if (stall_rate.at(BE) < prev_stall_rate.at(BE)) {
         current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
-                                                      current_remote_ratio);
+                                                      current_remote_ratio,
+                                                      mem_segments);
       } else {
         current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
-                                                      current_remote_ratio);
+                                                      current_remote_ratio,
+                                                      mem_segments);
       }
     }
 
@@ -210,7 +213,6 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
     if (std::isnan(stall_rate.at(HP))) {
       LINFO("NAN target stall rate, revert to the previous state and break!");
       apply_mba(current_optimal_mba);
-      current_optimal_mba = i;
       break;
     }
 
@@ -241,7 +243,8 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
  * Page migrations from remote to local node (HP to BE nodes)
  * TODO: Handle transient cases
  */
-int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio) {
+int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
+                           std::vector<MySharedMemory> mem_segments) {
 
   std::vector<double> stall_rate(active_cpus);
   int i;
@@ -249,7 +252,7 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio) {
   for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
 
     LINFOF("Going to check a ratio of %d", i);
-    //place_all_pages(mem_segments, i);
+    place_all_pages(mem_segments, i);
 
     //Measure the stall_rate of the applications
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
@@ -290,7 +293,8 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio) {
  *
  */
 
-int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio) {
+int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
+                           std::vector<MySharedMemory> mem_segments) {
 
   std::vector<double> best_stall_rate(active_cpus,
                                       std::numeric_limits<double>::infinity());
@@ -301,7 +305,7 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio) {
 
     LINFOF("Going to check a ratio of %d", i);
     if (i != 0) {
-      //place_all_pages(mem_segments, i);
+      place_all_pages(mem_segments, i);
     }
 
     //Measure the stall_rate of the applications
@@ -319,7 +323,7 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio) {
              target_stall_rate, stall_rate.at(HP));
       if (i != 0) {
         LINFO("Going one step back before breaking!");
-        //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+        place_all_pages(mem_segments, (i - ADAPTATION_STEP));
         current_remote_ratio = i - ADAPTATION_STEP;
       } else {
         current_remote_ratio = i;
@@ -335,7 +339,7 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio) {
       LINFO("No performance improvement for the BE");
       if (i != 0) {
         LINFO("Going one step back before breaking!");
-        //place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+        place_all_pages(mem_segments, (i - ADAPTATION_STEP));
         current_remote_ratio = i - ADAPTATION_STEP;
       } else {
         current_remote_ratio = i;
@@ -350,6 +354,7 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio) {
           "Performance improvement for BE without SLO Violation, continue climbing");
       LINFOF("best: %.10lf, current: %.10lf", best_stall_rate.at(BE),
              stall_rate.at(BE));
+      current_remote_ratio = i;
     }
 
   }
@@ -452,6 +457,18 @@ void bw_manager_test() {
   std::vector<double> prev_stall_rate(active_cpus,
                                       std::numeric_limits<double>::infinity());
 
+  //First read the memory segments to be moved
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+  LINFOF("Number of Segments: %lu", mem_segments.size());
+
+  //some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
+
   LINFO("==============================================");
   LINFO("TESTING get_target_stall_rate function");
   LINFO("----------------------------------------------");
@@ -477,14 +494,16 @@ void bw_manager_test() {
   LINFO("TESTING apply_pagemigration_lr function");
   LINFO("----------------------------------------------");
   current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
-                                                current_remote_ratio);
+                                                current_remote_ratio,
+                                                mem_segments);
 
   target_stall_rate = 0.001;  //some fake value
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_rl function");
   LINFO("----------------------------------------------");
   current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
-                                                current_remote_ratio);
+                                                current_remote_ratio,
+                                                mem_segments);
 
   target_stall_rate = 10.001;  //some fake value
   LINFO("==============================================");
@@ -496,6 +515,63 @@ void bw_manager_test() {
   LINFO("==============================================");
   LINFOF("FINAL VALUES: current_optimal_mba: %d, current_remote_ratio: %d",
          current_optimal_mba, current_remote_ratio);
+}
+
+void read_weights(char filename[]) {
+  FILE * fp;
+  char * line = NULL;
+  size_t len = 0;
+  ssize_t read;
+
+  const char s[2] = ",";
+  char *token;
+
+  int j = 0;
+
+  double weight;
+  int id;
+
+  fp = fopen(filename, "r");
+  if (fp == NULL) {
+    printf("Weights have not been provided!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  while ((read = getline(&line, &len, fp)) != -1) {
+    char *strtok_saveptr;
+    // printf("Retrieved line of length %zu :\n", read);
+    //printf("%s", line);
+
+    // get the first token
+    token = strtok_r(line, s, &strtok_saveptr);
+    weight = atof(token);
+    //printf(" %s\n", token);
+
+    // get the second token
+    token = strtok_r(NULL, s, &strtok_saveptr);
+    id = atoi(token);
+
+    BWMAN_WEIGHTS.push_back(make_pair(weight, id));
+
+    //printf(" %s\n", token);
+    j++;
+  }
+
+  //sort the vector in ascending order
+  sort(BWMAN_WEIGHTS.begin(), BWMAN_WEIGHTS.end());
+
+  for (j = 0; j < MAX_NODES; j++) {
+    printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(j).second,
+           BWMAN_WEIGHTS.at(j).first);
+  }
+
+  fclose(fp);
+  if (line)
+    free(line);
+
+  LINFO("weights initialized!");
+
+  return;
 }
 
 /*
@@ -1090,63 +1166,6 @@ void bw_manager_test() {
  gettimeofday(&tend, NULL);
  length = time_diff(&tstart, &tend);
  LINFOF("Adaptation concluded in %ldms\n", length / 1000);
- }
-
- void read_weights(char filename[]) {
- FILE * fp;
- char * line = NULL;
- size_t len = 0;
- ssize_t read;
-
- const char s[2] = ",";
- char *token;
-
- int j = 0;
-
- double weight;
- int id;
-
- fp = fopen(filename, "r");
- if (fp == NULL) {
- printf("Weights have not been provided!\n");
- exit(EXIT_FAILURE);
- }
-
- while ((read = getline(&line, &len, fp)) != -1) {
- char *strtok_saveptr;
- // printf("Retrieved line of length %zu :\n", read);
- //printf("%s", line);
-
- // get the first token
- token = strtok_r(line, s, &strtok_saveptr);
- weight = atof(token);
- //printf(" %s\n", token);
-
- // get the second token
- token = strtok_r(NULL, s, &strtok_saveptr);
- id = atoi(token);
-
- BWMAN_WEIGHTS.push_back(make_pair(weight, id));
-
- //printf(" %s\n", token);
- j++;
- }
-
- //sort the vector in ascending order
- sort(BWMAN_WEIGHTS.begin(), BWMAN_WEIGHTS.end());
-
- for (j = 0; j < MAX_NODES; j++) {
- printf("id: %d weight: %.2f\n", BWMAN_WEIGHTS.at(j).second,
- BWMAN_WEIGHTS.at(j).first);
- }
-
- fclose(fp);
- if (line)
- free(line);
-
- LINFO("weights initialized!");
-
- return;
  }
 
  void get_sum_nww_ww(int num_workers) {

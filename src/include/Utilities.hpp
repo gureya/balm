@@ -8,6 +8,9 @@
 #ifndef INCLUDE_UTILITIES_HPP_
 #define INCLUDE_UTILITIES_HPP_
 
+#include <vector>
+#include "include/MySharedMemory.hpp"
+
 void read_weights(char filename[]);
 void get_sum_nww_ww(int num_workers);
 
@@ -23,8 +26,10 @@ void periodic_monitor(void);
 void apply_mba(int mba_value);
 int search_optimal_mba(double target_stall_rate, int current_optimal_mba);
 int mba_binary_search(int current_mba, double progress);
-int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio);
-int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio);
+int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
+                           std::vector<MySharedMemory> mem_segments);
+int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
+                           std::vector<MySharedMemory> mem_segments);
 int release_mba(int optimal_mba, double target_stall_rate,
                 int current_remote_ratio);
 
