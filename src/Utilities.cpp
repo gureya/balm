@@ -95,6 +95,8 @@ void periodic_monitor() {
         && stall_rate.at(HP) >= target_stall_rate * (1 - delta)
         && stall_rate.at(HP) <= target_stall_rate * (1 + delta)) {
       LINFO("Nothing can be done (SLO within the operation region)");
+      LINFOF("target: %.10lf, current: %.10lf", target_stall_rate,
+             stall_rate.at(HP));
     }
 
     else if (!std::isnan(stall_rate.at(HP))
@@ -125,6 +127,8 @@ void periodic_monitor() {
       } else {
         LINFO(
             "Nothing can be done about SLO violation (Change in workload!), Find new target SLO!");
+        LINFOF("target: %.10lf, current: %.10lf", target_stall_rate,
+               stall_rate.at(HP));
       }
 
     }
@@ -146,7 +150,7 @@ void periodic_monitor() {
       LINFOF("BE current: %.10lf, BE previous: %.10lf", stall_rate.at(BE),
              prev_stall_rate.at(BE));
 
-      if (stall_rate.at(BE) < prev_stall_rate.at(BE)) {
+      if (stall_rate.at(BE) < prev_stall_rate.at(BE) * (1 + delta)) {
         LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
                                                       current_remote_ratio,
