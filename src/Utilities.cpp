@@ -71,6 +71,7 @@ void periodic_monitor() {
   int current_remote_ratio = 0;
   int optimal_mba = 100;
   double target_stall_rate;
+  int iter = 0;
 
   std::vector<double> stall_rate(active_cpus);
   std::vector<double> prev_stall_rate(active_cpus,
@@ -80,7 +81,9 @@ void periodic_monitor() {
 
     //TODO: this can be inside the loop or outside the loop!
     //TODO: Define the operation region of the controller
-
+    LINFO("======================================================");
+    LINFOF("Starting a new iteration: %d", iter);
+    LINFO("------------------------------------------------------");
     target_stall_rate = get_target_stall_rate(current_remote_ratio);
     LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
 
@@ -103,15 +106,18 @@ void periodic_monitor() {
 
       if (current_remote_ratio != 0) {
         //Enforce MBA
+        LINFO("------------------------------------------------------");
         optimal_mba = search_optimal_mba(target_stall_rate, optimal_mba);
 
         //Enforce Lazy Page migration while releasing MBA
         while (optimal_mba != 100) {
           //apply page migration
+          LINFO("------------------------------------------------------");
           current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
                                                         current_remote_ratio,
                                                         mem_segments);
           //release MBA
+          LINFO("------------------------------------------------------");
           optimal_mba = release_mba(optimal_mba, target_stall_rate,
                                     current_remote_ratio);
         }
@@ -141,10 +147,12 @@ void periodic_monitor() {
              prev_stall_rate.at(BE));
 
       if (stall_rate.at(BE) < prev_stall_rate.at(BE)) {
+        LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
                                                       current_remote_ratio,
                                                       mem_segments);
       } else {
+        LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
                                                       current_remote_ratio,
                                                       mem_segments);
@@ -155,7 +163,10 @@ void periodic_monitor() {
     //TODO: This has to be debugged - stall rate has changed during the previous iterations!
     prev_stall_rate = stall_rate;
 
-    LINFOF("Sleeping for %d before the next iteration", sleeptime);
+    LINFOF("End of iteration: %d, sleeping for %d seconds", sleeptime, iter);
+    LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
+           optimal_mba);
+    iter++;
     sleep(sleeptime);
   }
 
@@ -178,7 +189,6 @@ double get_target_stall_rate(int current_remote_ratio) {
   int min_mba = 10;
   int max_mba = 100;
 
-  LINFO("===================================================");
   LINFO("Getting the target SLO for the HP");
   if (current_remote_ratio != 0) {
     apply_mba(min_mba);
@@ -194,7 +204,6 @@ double get_target_stall_rate(int current_remote_ratio) {
   if (current_remote_ratio != 0) {
     apply_mba(max_mba);
   }
-  LINFO("===================================================");
 
   return target_stall_rate;
 }
