@@ -115,8 +115,8 @@ void read_config(void) {
 }
 
 void start_bw_manager() {
-  //periodic_monitor();
-  bw_manager_test();
+  periodic_monitor();
+  //bw_manager_test();
 }
 
 int main(int argc, char **argv) {

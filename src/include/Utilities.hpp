@@ -21,7 +21,7 @@ void hill_climbing_pmigration_100(void);
 void hill_climbing_mba_sha(void);
 void hill_climbing_pmigration_v2(void);
 
-double get_target_stall_rate(void);
+double get_target_stall_rate(int current_remote_ratio);
 void periodic_monitor(void);
 void apply_mba(int mba_value);
 int search_optimal_mba(double target_stall_rate, int current_optimal_mba);
@@ -34,6 +34,6 @@ int release_mba(int optimal_mba, double target_stall_rate,
                 int current_remote_ratio);
 
 void signalHandler(int signum);
-void bw_manager_test();
+void bw_manager_test(void);
 
 #endif /* INCLUDE_UTILITIES_HPP_ */

@@ -80,7 +80,7 @@ void periodic_monitor() {
     //TODO: this can be inside the loop or outside the loop!
     //TODO: Define the operation region of the controller
 
-    target_stall_rate = get_target_stall_rate();
+    target_stall_rate = get_target_stall_rate(current_remote_ratio);
     LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
 
     //Measure the stall_rate of the applications
@@ -155,7 +155,7 @@ void periodic_monitor() {
  * After measuring set MBA to the maximum value
  *
  */
-double get_target_stall_rate() {
+double get_target_stall_rate(int current_remote_ratio) {
 
   double target_stall_rate;
   int min_mba = 10;
@@ -163,7 +163,9 @@ double get_target_stall_rate() {
 
   LINFO("===================================================");
   LINFO("Getting the target SLO for the HP");
-  apply_mba(min_mba);
+  if (current_remote_ratio != 0) {
+    apply_mba(min_mba);
+  }
 
   std::vector<double> stall_rate(active_cpus);
   //Measure the stall_rate of the applications
@@ -172,7 +174,9 @@ double get_target_stall_rate() {
 
   target_stall_rate = stall_rate.at(HP);
 
-  apply_mba(max_mba);
+  if (current_remote_ratio != 0) {
+    apply_mba(max_mba);
+  }
   LINFO("===================================================");
 
   return target_stall_rate;
@@ -472,10 +476,10 @@ void bw_manager_test() {
   LINFO("==============================================");
   LINFO("TESTING get_target_stall_rate function");
   LINFO("----------------------------------------------");
-  target_stall_rate = get_target_stall_rate();
+  target_stall_rate = get_target_stall_rate(current_remote_ratio);
   LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
 
-  target_stall_rate = 0.001;  //some fake value
+  //target_stall_rate = 0.001;  //some fake value
   //Measure the stall_rate of the applications
   stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                       _num_poll_outliers);
@@ -489,7 +493,7 @@ void bw_manager_test() {
   current_optimal_mba = search_optimal_mba(target_stall_rate,
                                            current_optimal_mba);
 
-  target_stall_rate = 10.001;  //some fake value
+  //target_stall_rate = 10.001;  //some fake value
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_lr function");
   LINFO("----------------------------------------------");
@@ -497,7 +501,7 @@ void bw_manager_test() {
                                                 current_remote_ratio,
                                                 mem_segments);
 
-  target_stall_rate = 0.001;  //some fake value
+  //target_stall_rate = 0.001;  //some fake value
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_rl function");
   LINFO("----------------------------------------------");
@@ -505,7 +509,7 @@ void bw_manager_test() {
                                                 current_remote_ratio,
                                                 mem_segments);
 
-  target_stall_rate = 10.001;  //some fake value
+  //target_stall_rate = 10.001;  //some fake value
   LINFO("==============================================");
   LINFO("TESTING release_mba function");
   LINFO("----------------------------------------------");
