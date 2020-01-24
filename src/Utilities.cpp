@@ -22,11 +22,18 @@ double noise_allowed = 0.05;  // 5%
 double delta = 0.003;  // operational region of the controller
 ////////////////////////////////////////////
 
+/////////////////////////////////////////////
+//some dynamic global variables
+std::vector<double> stall_rate(active_cpus);
+std::vector<double> prev_stall_rate(active_cpus);
+std::vector<double> best_stall_rate(active_cpus);
+/////////////////////////////////////////////
+
 static int run = 1;
 static int sleeptime = 5;
 
 enum {
-  BE,
+  BE = 0,
   HP
 };
 
@@ -73,9 +80,13 @@ void periodic_monitor() {
   double target_stall_rate;
   int iter = 0;
 
-  std::vector<double> stall_rate(active_cpus);
-  std::vector<double> prev_stall_rate(active_cpus,
-                                      std::numeric_limits<double>::infinity());
+  int i;
+  for (i = 0; i < active_cpus; i++) {
+    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
+    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
+  }
+  LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
+         best_stall_rate.at(BE), prev_stall_rate.at(BE));
 
   while (run) {
 
@@ -198,7 +209,6 @@ double get_target_stall_rate(int current_remote_ratio) {
     apply_mba(min_mba);
   }
 
-  std::vector<double> stall_rate(active_cpus);
   //Measure the stall_rate of the applications
   stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                       _num_poll_outliers);
@@ -225,8 +235,6 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
   int i;
   double progress;
 
-  std::vector<double> stall_rate(active_cpus);
-
   i = 40;
   int previous_mba = 40;
 
@@ -250,7 +258,7 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
       break;
     }
 
-    if (stall_rate.at(HP) <= target_stall_rate) {
+    if (stall_rate.at(HP) <= target_stall_rate * (1 + delta)) {
       LINFOF("SLO has been achieved: target: %.10lf, current: %.10lf",
              target_stall_rate, stall_rate.at(HP));
       current_optimal_mba = i;
@@ -280,7 +288,6 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
 int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
                            std::vector<MySharedMemory> mem_segments) {
 
-  std::vector<double> stall_rate(active_cpus);
   int i;
 
   for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
@@ -330,9 +337,6 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
 int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
                            std::vector<MySharedMemory> mem_segments) {
 
-  std::vector<double> best_stall_rate(active_cpus,
-                                      std::numeric_limits<double>::infinity());
-  std::vector<double> stall_rate(active_cpus);
   int i;
 
   for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
@@ -407,7 +411,6 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
 int release_mba(int optimal_mba, double target_stall_rate,
                 int current_remote_ratio) {
   int i;
-  std::vector<double> stall_rate(active_cpus);
 
   for (i = optimal_mba; i <= 100; i += 10) {
 
@@ -489,10 +492,6 @@ void bw_manager_test() {
   int current_remote_ratio = 0;
   int current_optimal_mba = 100;
   double target_stall_rate;
-
-  std::vector<double> stall_rate(active_cpus);
-  std::vector<double> prev_stall_rate(active_cpus,
-                                      std::numeric_limits<double>::infinity());
 
   //First read the memory segments to be moved
   std::vector<MySharedMemory> mem_segments = get_shared_memory();
