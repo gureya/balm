@@ -24,7 +24,7 @@ bool FIXED_RATIO = false;
 
 int BWMAN_WORKERS = 1;
 int bwman_mode_value = 0;  // 0 - adaptive-coscheduled, 1 - fixed-ratio, 2 - adaptive-standalone
-double fixed_ratio_value = 0;
+int fixed_ratio_value = 0;
 
 static bool is_initialized = false;
 
@@ -98,9 +98,9 @@ void read_config(void) {
 
   FIXED_RATIO = getenv("FIXED_RATIO") != nullptr;
   if (FIXED_RATIO) {
-    fixed_ratio_value = stof(getenv("FIXED_RATIO"));
+    fixed_ratio_value = stoi(getenv("FIXED_RATIO"));
   }
-  LINFOF("FIXED_RATIO: %.2f", fixed_ratio_value);
+  LINFOF("FIXED_RATIO: %d", fixed_ratio_value);
 
   WEIGHTS = getenv("BWMAN_WEIGHTS") != nullptr;
   if (WEIGHTS) {
@@ -117,7 +117,8 @@ void read_config(void) {
 void start_bw_manager() {
   //periodic_monitor();
   //measure_stall_rate();
-  find_optimal_lr_ratio();
+  test_fixed_ratio();
+  //find_optimal_lr_ratio();
   //bw_manager_test();
 }
 

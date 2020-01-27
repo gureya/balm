@@ -568,13 +568,26 @@ void bw_manager_test() {
 
 void measure_stall_rate() {
   int iter = 0;
+
+  //First read the memory segments to be moved
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+  LINFOF("Number of Segments: %lu", mem_segments.size());
+
+  //some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
+
   while (true) {
     stall_rate = stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                                      _num_poll_outliers);
     LINFOF("iter: %d, stall_rate(BE): %.10lf, stall_rate(HP): %.10lf", iter,
            stall_rate.at(BE), stall_rate.at(HP));
     iter++;
-    sleep(sleeptime);
+    //sleep(sleeptime);
   }
 }
 
@@ -629,6 +642,30 @@ void my_logger(int crr, int cml, double hpt, double hps, double bes) {
   MyLogger mylogger(crr, cml, hpt, hps, bes);
 
   my_logs.push_back(mylogger);
+}
+
+void test_fixed_ratio() {
+  //First read the memory segments to be moved
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+  LINFOF("Number of Segments: %lu", mem_segments.size());
+
+  //some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
+  stall_rate = stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                                   _num_poll_outliers);
+  LINFOF("Before: stall_rate(BE): %.10lf, stall_rate(HP): %.10lf",
+         stall_rate.at(BE), stall_rate.at(HP));
+  LINFOF("Going to check a ratio of %d", fixed_ratio_value);
+  place_all_pages(mem_segments, fixed_ratio_value);
+  stall_rate = stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                                   _num_poll_outliers);
+  LINFOF("After: stall_rate(BE): %.10lf, stall_rate(HP): %.10lf",
+         stall_rate.at(BE), stall_rate.at(HP));
 }
 
 void read_weights(char filename[]) {

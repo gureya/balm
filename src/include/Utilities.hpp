@@ -40,5 +40,6 @@ void bw_manager_test(void);
 void measure_stall_rate(void);
 void find_optimal_lr_ratio(void);
 void my_logger(int crr, int cml, double hpt, double hps, double bes);
+void test_fixed_ratio();
 
 #endif /* INCLUDE_UTILITIES_HPP_ */

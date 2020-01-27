@@ -21,6 +21,7 @@ extern "C" {
 // the monitoring cores
 extern std::vector<int> BWMAN_CORES;
 extern int active_cpus;
+extern int fixed_ratio_value;
 // Worker Node
 extern int BWMAN_WORKERS;
 // Maximum number of nodes in the system
@@ -37,7 +38,6 @@ extern double sum_nww;
 #define ADAPTATION_STEP 10  // E.g. Move 10% of shared pages to the worker nodes
 
 void start_bw_manager(void);
-
 
 #ifdef __cplusplus
 }  // extern "C"
