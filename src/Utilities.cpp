@@ -553,6 +553,55 @@ void bw_manager_test() {
          current_optimal_mba, current_remote_ratio);
 }
 
+void measure_stall_rate() {
+  int iter = 0;
+  while (true) {
+    stall_rate = stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                                     _num_poll_outliers);
+    LINFOF("iter: %d, stall_rate(BE): %.10lf, stall_rate(HP): %.10lf", iter,
+           stall_rate.at(BE), stall_rate.at(HP));
+    iter++;
+    sleep(sleeptime);
+  }
+}
+
+void find_optimal_lr_ratio() {
+  int current_remote_ratio = 0;
+  double target_stall_rate;
+
+  //First read the memory segments to be moved
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+  LINFOF("Number of Segments: %lu", mem_segments.size());
+
+  //some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
+
+  target_stall_rate = get_target_stall_rate(current_remote_ratio);
+  LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
+  target_stall_rate = 10.001;  //some fake value
+
+  int i;
+  for (i = 0; i < active_cpus; i++) {
+    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
+    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
+  }
+  LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
+         best_stall_rate.at(BE), prev_stall_rate.at(BE));
+
+  LINFO("==============================================");
+  LINFO("Finding optimal Local-remote ratio for BE");
+  LINFO("----------------------------------------------");
+  current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
+                                                current_remote_ratio,
+                                                mem_segments);
+
+}
+
 void read_weights(char filename[]) {
   FILE * fp;
   char * line = NULL;

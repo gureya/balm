@@ -34,6 +34,10 @@ int release_mba(int optimal_mba, double target_stall_rate,
                 int current_remote_ratio);
 
 void signalHandler(int signum);
+
+//test functions
 void bw_manager_test(void);
+void measure_stall_rate(void);
+void find_optimal_lr_ratio(void);
 
 #endif /* INCLUDE_UTILITIES_HPP_ */
