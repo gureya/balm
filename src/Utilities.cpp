@@ -19,7 +19,7 @@ unsigned int _num_polls = 20;
 unsigned int _num_poll_outliers = 5;
 useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
-double delta = 0.003;  // operational region of the controller
+double delta = 0.05;  // operational region of the controller (5%)
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -355,7 +355,7 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
 
     //First check if we are violating the SLO
     if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) > target_stall_rate * 1.001) {
+        && stall_rate.at(HP) > target_stall_rate * (1 + delta)) {
 
       LINFOF("SLO has been violated target: %.10lf, current: %.10lf",
              target_stall_rate, stall_rate.at(HP));
