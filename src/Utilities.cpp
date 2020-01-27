@@ -11,6 +11,7 @@
 #include "include/PerformanceCounters.hpp"
 #include "include/MySharedMemory.hpp"
 #include "include/PagePlacement.hpp"
+#include "include/MyLogger.hpp"
 
 /////////////////////////////////////////////
 //provide this in a config
@@ -28,6 +29,9 @@ std::vector<double> stall_rate(active_cpus);
 std::vector<double> prev_stall_rate(active_cpus);
 std::vector<double> best_stall_rate(active_cpus);
 /////////////////////////////////////////////
+
+//For Logging purposes
+std::vector<MyLogger> my_logs;
 
 static int run = 1;
 static int sleeptime = 5;
@@ -368,8 +372,10 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
       } else {
         current_remote_ratio = i;
       }
-      break;
 
+      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
+                stall_rate.at(BE));
+      break;
     }
 
     //then check if there is any performance improvement for BE
@@ -386,8 +392,10 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
       } else {
         current_remote_ratio = i;
       }
-      break;
 
+      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
+                stall_rate.at(BE));
+      break;
     }
 
     //if performance improvement and no SLO violation continue climbing
@@ -397,8 +405,10 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
       LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
              stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
       current_remote_ratio = i;
-    }
 
+      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
+                stall_rate.at(BE));
+    }
   }
 
   LINFOF("Current remote ratio: %d", current_remote_ratio);
@@ -601,7 +611,23 @@ void find_optimal_lr_ratio() {
   current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
                                                 current_remote_ratio,
                                                 mem_segments);
+  //print the logs
+  for (size_t j = 0; j < my_logs.size(); j++) {
+    printf("%d\t%d\t%.10lf\t%.10lf\t%.10lf\n",
+           my_logs.at(j).current_remote_ratio, my_logs.at(j).current_mba_level,
+           my_logs.at(j).HPA_target_stall_rate, my_logs.at(j).HPA_stall_rate,
+           my_logs.at(j).BEA_stall_rate);
+  }
+}
 
+/*
+ * Log all the current information
+ */
+void my_logger(int crr, int cml, double hpt, double hps, double bes) {
+  //Log all the current information:
+  MyLogger mylogger(crr, cml, hpt, hps, bes);
+
+  my_logs.push_back(mylogger);
 }
 
 void read_weights(char filename[]) {
