@@ -357,8 +357,10 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
     if (!std::isnan(stall_rate.at(HP))
         && stall_rate.at(HP) > target_stall_rate * (1 + delta)) {
 
-      LINFOF("SLO has been violated target: %.10lf, current: %.10lf",
+      LINFOF("SLO has been violated target: %.10lf, current(HP): %.10lf",
              target_stall_rate, stall_rate.at(HP));
+      LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
+             stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
       if (i != 0) {
         LINFO("Going one step back before breaking!");
         place_all_pages(mem_segments, (i - ADAPTATION_STEP));
@@ -375,8 +377,8 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
         || std::isnan(stall_rate.at(BE))) {
 
       LINFO("No performance improvement for the BE");
-      LINFOF("best: %.10lf, current: %.10lf", best_stall_rate.at(BE),
-             stall_rate.at(BE));
+      LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
+             stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
       if (i != 0) {
         LINFO("Going one step back before breaking!");
         place_all_pages(mem_segments, (i - ADAPTATION_STEP));
@@ -392,8 +394,8 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
     else {
       LINFO(
           "Performance improvement for BE without SLO Violation, continue climbing");
-      LINFOF("best: %.10lf, current: %.10lf", best_stall_rate.at(BE),
-             stall_rate.at(BE));
+      LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
+             stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
       current_remote_ratio = i;
     }
 
