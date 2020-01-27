@@ -20,7 +20,8 @@ unsigned int _num_polls = 20;
 unsigned int _num_poll_outliers = 5;
 useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
-double delta = 0.05;  // operational region of the controller (5%)
+double delta_hp = 0.05;  // operational region of the controller (5%)
+double delta_be = 0.003;  // operational region of the controller (5%)
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -107,15 +108,15 @@ void periodic_monitor() {
                                         _num_poll_outliers);
 
     if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) >= target_stall_rate * (1 - delta)
-        && stall_rate.at(HP) <= target_stall_rate * (1 + delta)) {
+        && stall_rate.at(HP) >= target_stall_rate * (1 - delta_hp)
+        && stall_rate.at(HP) <= target_stall_rate * (1 + delta_hp)) {
       LINFO("Nothing can be done (SLO within the operation region)");
       LINFOF("target: %.10lf, current: %.10lf", target_stall_rate,
              stall_rate.at(HP));
     }
 
     else if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) > target_stall_rate * (1 + delta)) {
+        && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)) {
 
       LINFOF(
           "SLO has been violated (ABOVE operation region) target: %.10lf, current: %.10lf",
@@ -165,7 +166,7 @@ void periodic_monitor() {
       LINFOF("BE current: %.10lf, BE previous: %.10lf", stall_rate.at(BE),
              prev_stall_rate.at(BE));
 
-      if (stall_rate.at(BE) < prev_stall_rate.at(BE) * (1 + delta)) {
+      if (stall_rate.at(BE) < prev_stall_rate.at(BE) * (1 + delta_be)) {
         LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
                                                       current_remote_ratio,
@@ -262,7 +263,7 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
       break;
     }
 
-    if (stall_rate.at(HP) <= target_stall_rate * (1 + delta)) {
+    if (stall_rate.at(HP) <= target_stall_rate * (1 + delta_hp)) {
       LINFOF("SLO has been achieved: target: %.10lf, current: %.10lf",
              target_stall_rate, stall_rate.at(HP));
       current_optimal_mba = i;
@@ -312,7 +313,7 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
       break;
     }
 
-    if (stall_rate.at(HP) <= target_stall_rate * (1 + delta)) {
+    if (stall_rate.at(HP) <= target_stall_rate * (1 + delta_hp)) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
@@ -359,7 +360,7 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
 
     //First check if we are violating the SLO
     if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) > target_stall_rate * (1 + delta)) {
+        && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)) {
 
       LINFOF("SLO has been violated target: %.10lf, current(HP): %.10lf",
              target_stall_rate, stall_rate.at(HP));
@@ -379,7 +380,7 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
     }
 
     //then check if there is any performance improvement for BE
-    else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 + delta)
+    else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 + delta_be)
         || std::isnan(stall_rate.at(BE))) {
 
       LINFO("No performance improvement for the BE");
@@ -435,7 +436,7 @@ int release_mba(int optimal_mba, double target_stall_rate,
                                         _num_poll_outliers);
 
     if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) > target_stall_rate * (1 + delta)
+        && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)
         && current_remote_ratio != 0) {
       LINFOF(
           "SLO violation has been detected (STOP releasing MBA): target: %.10lf, current: %.10lf",
