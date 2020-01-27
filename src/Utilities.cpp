@@ -581,9 +581,9 @@ void find_optimal_lr_ratio() {
     exit(EXIT_FAILURE);
   }
 
-  target_stall_rate = get_target_stall_rate(current_remote_ratio);
+  //target_stall_rate = get_target_stall_rate(current_remote_ratio);
+  target_stall_rate = 0.66465022205;  //some fake value
   LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
-  target_stall_rate = 10.001;  //some fake value
 
   int i;
   for (i = 0; i < active_cpus; i++) {
