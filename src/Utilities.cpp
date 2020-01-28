@@ -126,7 +126,8 @@ void periodic_monitor() {
       if (current_remote_ratio != 0) {
         //Enforce MBA
         LINFO("------------------------------------------------------");
-        optimal_mba = search_optimal_mba(target_stall_rate, optimal_mba);
+        optimal_mba = search_optimal_mba(target_stall_rate, optimal_mba,
+                                         current_remote_ratio);
 
         //Enforce Lazy Page migration while releasing MBA
         while (optimal_mba != 100) {
@@ -134,7 +135,8 @@ void periodic_monitor() {
           LINFO("------------------------------------------------------");
           current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
                                                         current_remote_ratio,
-                                                        mem_segments);
+                                                        mem_segments,
+                                                        optimal_mba);
           //release MBA
           LINFO("------------------------------------------------------");
           optimal_mba = release_mba(optimal_mba, target_stall_rate,
@@ -171,12 +173,14 @@ void periodic_monitor() {
         LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
                                                       current_remote_ratio,
-                                                      mem_segments);
+                                                      mem_segments,
+                                                      optimal_mba);
       } else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 - delta_be)) {
         LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
                                                       current_remote_ratio,
-                                                      mem_segments);
+                                                      mem_segments,
+                                                      optimal_mba);
       } else {
         LINFO(
             "Nothing can be done (SLO within the operation region && No performance improvement for BE)");
@@ -237,7 +241,8 @@ double get_target_stall_rate(int current_remote_ratio) {
  *
  */
 
-int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
+int search_optimal_mba(double target_stall_rate, int current_optimal_mba,
+                       int current_remote_ratio) {
 
   int i;
   double progress;
@@ -258,6 +263,10 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
     //Measure the stall_rate of the applications after enforcing MBA
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
+
+    my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
+              stall_rate.at(HP), stall_rate.at(BE));
+
     //sanity checker
     if (std::isnan(stall_rate.at(HP))) {
       LINFO("NAN target stall rate, revert to the previous state and break!");
@@ -293,7 +302,8 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba) {
  * TODO: Handle transient cases
  */
 int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
-                           std::vector<MySharedMemory> mem_segments) {
+                           std::vector<MySharedMemory> mem_segments,
+                           int current_optimal_mba) {
 
   int i;
 
@@ -306,16 +316,15 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
+    my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
+              stall_rate.at(HP), stall_rate.at(BE));
+
     //sanity check
     if (std::isnan(stall_rate.at(HP))) {
       LINFOF(
           "NAN HP stall rate (STOP page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       current_remote_ratio = i;
-
-      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
-                stall_rate.at(BE));
-
       break;
     }
 
@@ -324,20 +333,12 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
           "SLO has been achieved (STOP page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       current_remote_ratio = i;
-
-      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
-                stall_rate.at(BE));
-
       break;
     } else {
       LINFOF(
           "SLO has NOT been achieved (CONTINUE page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       current_remote_ratio = i;
-
-      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
-                stall_rate.at(BE));
-
     }
 
   }
@@ -354,7 +355,8 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
  */
 
 int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
-                           std::vector<MySharedMemory> mem_segments) {
+                           std::vector<MySharedMemory> mem_segments,
+                           int current_optimal_mba) {
 
   int i;
 
@@ -372,6 +374,9 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
     best_stall_rate.at(BE) = std::min(best_stall_rate.at(BE),
                                       stall_rate.at(BE));
 
+    my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
+              stall_rate.at(HP), stall_rate.at(BE));
+
     //First check if we are violating the SLO
     if (!std::isnan(stall_rate.at(HP))
         && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)) {
@@ -387,9 +392,6 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
       } else {
         current_remote_ratio = i;
       }
-
-      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
-                stall_rate.at(BE));
       break;
     }
 
@@ -407,9 +409,6 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
       } else {
         current_remote_ratio = i;
       }
-
-      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
-                stall_rate.at(BE));
       break;
     }
 
@@ -420,9 +419,6 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
       LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
              stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
       current_remote_ratio = i;
-
-      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
-                stall_rate.at(BE));
     }
   }
 
@@ -449,6 +445,9 @@ int release_mba(int optimal_mba, double target_stall_rate,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
+    my_logger(current_remote_ratio, optimal_mba, target_stall_rate,
+              stall_rate.at(HP), stall_rate.at(BE));
+
     if (!std::isnan(stall_rate.at(HP))
         && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)
         && current_remote_ratio != 0) {
@@ -456,19 +455,12 @@ int release_mba(int optimal_mba, double target_stall_rate,
           "SLO violation has been detected (STOP releasing MBA): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       optimal_mba = i;
-
-      my_logger(current_remote_ratio, optimal_mba, target_stall_rate,
-                stall_rate.at(HP), stall_rate.at(BE));
-
       break;
     } else {
       LINFOF(
           "SLO violation has NOT been detected (CONTINUE releasing MBA): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       optimal_mba = i;
-
-      my_logger(current_remote_ratio, optimal_mba, target_stall_rate,
-                stall_rate.at(HP), stall_rate.at(BE));
     }
 
   }
@@ -557,7 +549,8 @@ void bw_manager_test() {
   LINFO("TESTING search_optimal_mba function");
   LINFO("----------------------------------------------");
   current_optimal_mba = search_optimal_mba(target_stall_rate,
-                                           current_optimal_mba);
+                                           current_optimal_mba,
+                                           current_remote_ratio);
 
   //target_stall_rate = 10.001;  //some fake value
   LINFO("==============================================");
@@ -565,7 +558,8 @@ void bw_manager_test() {
   LINFO("----------------------------------------------");
   current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
                                                 current_remote_ratio,
-                                                mem_segments);
+                                                mem_segments,
+                                                current_optimal_mba);
 
   //target_stall_rate = 0.001;  //some fake value
   LINFO("==============================================");
@@ -573,7 +567,8 @@ void bw_manager_test() {
   LINFO("----------------------------------------------");
   current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
                                                 current_remote_ratio,
-                                                mem_segments);
+                                                mem_segments,
+                                                current_optimal_mba);
 
   //target_stall_rate = 10.001;  //some fake value
   LINFO("==============================================");
@@ -602,6 +597,7 @@ void measure_stall_rate() {
 
 void find_optimal_lr_ratio() {
   int current_remote_ratio = 0;
+  int current_mba_level = 100;
   double target_stall_rate;
 
   //First read the memory segments to be moved
@@ -633,7 +629,8 @@ void find_optimal_lr_ratio() {
   LINFO("----------------------------------------------");
   current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
                                                 current_remote_ratio,
-                                                mem_segments);
+                                                mem_segments,
+                                                current_mba_level);
   //print the logs
   print_logs();
 }

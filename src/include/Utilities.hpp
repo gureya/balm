@@ -24,12 +24,15 @@ void hill_climbing_pmigration_v2(void);
 double get_target_stall_rate(int current_remote_ratio);
 void periodic_monitor(void);
 void apply_mba(int mba_value);
-int search_optimal_mba(double target_stall_rate, int current_optimal_mba);
+int search_optimal_mba(double target_stall_rate, int current_optimal_mba,
+                       int current_remote_ratio);
 int mba_binary_search(int current_mba, double progress);
 int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
-                           std::vector<MySharedMemory> mem_segments);
+                           std::vector<MySharedMemory> mem_segments,
+                           int current_optimal_mba);
 int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
-                           std::vector<MySharedMemory> mem_segments);
+                           std::vector<MySharedMemory> mem_segments,
+                           int current_optimal_mba);
 int release_mba(int optimal_mba, double target_stall_rate,
                 int current_remote_ratio);
 
