@@ -80,7 +80,7 @@ void periodic_monitor() {
     exit(EXIT_FAILURE);
   }
 
-  int current_remote_ratio = 0;
+  int current_remote_ratio = 30;
   int optimal_mba = 100;
   double target_stall_rate;
   int iter = 0;
@@ -100,7 +100,7 @@ void periodic_monitor() {
     LINFO("======================================================");
     LINFOF("Starting a new iteration: %d", iter);
     LINFO("------------------------------------------------------");
-    target_stall_rate = 0.2170673243;  //some fake value
+    target_stall_rate = 0.5030852868;  //some fake value
     //target_stall_rate = get_target_stall_rate(current_remote_ratio);
     LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
 
@@ -264,8 +264,9 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
-    my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
-              stall_rate.at(HP), stall_rate.at(BE));
+    std::string my_action = "apply_mba-" + i;
+    my_logger(current_remote_ratio, i, target_stall_rate, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     //sanity checker
     if (std::isnan(stall_rate.at(HP))) {
@@ -316,8 +317,9 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
+    std::string my_action = "apply_ratio-" + i;
     my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
-              stall_rate.at(HP), stall_rate.at(BE));
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
 
     //sanity check
     if (std::isnan(stall_rate.at(HP))) {
@@ -374,8 +376,9 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
     best_stall_rate.at(BE) = std::min(best_stall_rate.at(BE),
                                       stall_rate.at(BE));
 
+    std::string my_action = "apply_ratio-" + i;
     my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
-              stall_rate.at(HP), stall_rate.at(BE));
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
 
     //First check if we are violating the SLO
     if (!std::isnan(stall_rate.at(HP))
@@ -445,8 +448,9 @@ int release_mba(int optimal_mba, double target_stall_rate,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
-    my_logger(current_remote_ratio, optimal_mba, target_stall_rate,
-              stall_rate.at(HP), stall_rate.at(BE));
+    std::string my_action = "apply_mba-" + i;
+    my_logger(current_remote_ratio, i, target_stall_rate, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     if (!std::isnan(stall_rate.at(HP))
         && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)
@@ -641,19 +645,26 @@ void find_optimal_lr_ratio() {
  */
 void print_logs() {
   for (size_t j = 0; j < my_logs.size(); j++) {
-    printf("%d\t%d\t%.10lf\t%.10lf\t%.10lf\n",
-           my_logs.at(j).current_remote_ratio, my_logs.at(j).current_mba_level,
-           my_logs.at(j).HPA_target_stall_rate, my_logs.at(j).HPA_stall_rate,
-           my_logs.at(j).BEA_stall_rate);
+    /*printf("%d\t%d\t%.10lf\t%.10lf\t%.10lf\t%s\n",
+     my_logs.at(j).current_remote_ratio, my_logs.at(j).current_mba_level,
+     my_logs.at(j).HPA_target_stall_rate, my_logs.at(j).HPA_stall_rate,
+     my_logs.at(j).BEA_stall_rate, my_logs.at(j).action);*/
+
+    cout << my_logs.at(j).current_remote_ratio << "\t"
+         << my_logs.at(j).current_mba_level << "\t"
+         << my_logs.at(j).HPA_target_stall_rate << "\t"
+         << my_logs.at(j).HPA_stall_rate << "\t" << my_logs.at(j).BEA_stall_rate
+         << "\t" << my_logs.at(j).action << endl;
   }
 }
 
 /*
  * Log all the current information
  */
-void my_logger(int crr, int cml, double hpt, double hps, double bes) {
+void my_logger(int crr, int cml, double hpt, double hps, double bes,
+               std::string action) {
   //Log all the current information:
-  MyLogger mylogger(crr, cml, hpt, hps, bes);
+  MyLogger mylogger(crr, cml, hpt, hps, bes, action);
 
   my_logs.push_back(mylogger);
 }
