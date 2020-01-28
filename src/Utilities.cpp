@@ -21,7 +21,7 @@ unsigned int _num_poll_outliers = 5;
 useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
 double delta_hp = 0.05;  // operational region of the controller (5%)
-double delta_be = 0.003;  // operational region of the controller (5%)
+double delta_be = 0.001;  // operational region of the controller (5%)
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -183,10 +183,13 @@ void periodic_monitor() {
       }
     }
 
-    LINFOF("End of iteration: %d, sleeping for %d seconds", sleeptime, iter);
+    LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
     LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
            optimal_mba);
     iter++;
+
+    print_logs();
+
     sleep(sleeptime);
   }
 
@@ -614,6 +617,14 @@ void find_optimal_lr_ratio() {
                                                 current_remote_ratio,
                                                 mem_segments);
   //print the logs
+  print_logs();
+}
+
+/*
+ * print the logs
+ *
+ */
+void print_logs() {
   for (size_t j = 0; j < my_logs.size(); j++) {
     printf("%d\t%d\t%.10lf\t%.10lf\t%.10lf\n",
            my_logs.at(j).current_remote_ratio, my_logs.at(j).current_mba_level,
