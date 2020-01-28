@@ -13,6 +13,10 @@
 #include "include/PagePlacement.hpp"
 #include "include/MyLogger.hpp"
 
+//for set precision
+#include <iostream>
+#include <iomanip>
+
 /////////////////////////////////////////////
 //provide this in a config
 unsigned int _wait_start = 2;
@@ -264,7 +268,7 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
-    std::string my_action = "apply_mba-" + i;
+    std::string my_action = "apply_mba-" + std::to_string(i);
     my_logger(current_remote_ratio, i, target_stall_rate, stall_rate.at(HP),
               stall_rate.at(BE), my_action);
 
@@ -317,7 +321,7 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
-    std::string my_action = "apply_ratio-" + i;
+    std::string my_action = "apply_ratio-" + std::to_string(i);
     my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
               stall_rate.at(HP), stall_rate.at(BE), my_action);
 
@@ -376,7 +380,7 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
     best_stall_rate.at(BE) = std::min(best_stall_rate.at(BE),
                                       stall_rate.at(BE));
 
-    std::string my_action = "apply_ratio-" + i;
+    std::string my_action = "apply_ratio-" + std::to_string(i);
     my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
               stall_rate.at(HP), stall_rate.at(BE), my_action);
 
@@ -448,7 +452,7 @@ int release_mba(int optimal_mba, double target_stall_rate,
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
-    std::string my_action = "apply_mba-" + i;
+    std::string my_action = "apply_mba-" + std::to_string(i);
     my_logger(current_remote_ratio, i, target_stall_rate, stall_rate.at(HP),
               stall_rate.at(BE), my_action);
 
@@ -588,10 +592,18 @@ void bw_manager_test() {
 
 void measure_stall_rate() {
   int iter = 0;
+  double target_stall_rate = 0.5030852868;
 
   while (true) {
     stall_rate = stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                                      _num_poll_outliers);
+
+    std::string my_action = "apply_ratio-" + std::to_string(iter);
+    my_logger(0, 0, target_stall_rate, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
+
+    print_logs();
+
     LINFOF("iter: %d, stall_rate(BE): %.10lf, stall_rate(HP): %.10lf", iter,
            stall_rate.at(BE), stall_rate.at(HP));
     iter++;
@@ -649,6 +661,9 @@ void print_logs() {
      my_logs.at(j).current_remote_ratio, my_logs.at(j).current_mba_level,
      my_logs.at(j).HPA_target_stall_rate, my_logs.at(j).HPA_stall_rate,
      my_logs.at(j).BEA_stall_rate, my_logs.at(j).action);*/
+
+    std::cout << std::fixed;
+    std::cout << std::setprecision(10);
 
     cout << my_logs.at(j).current_remote_ratio << "\t"
          << my_logs.at(j).current_mba_level << "\t"
