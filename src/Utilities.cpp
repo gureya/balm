@@ -164,15 +164,15 @@ void periodic_monitor() {
        * move pages from remote to local node
        *
        */
-      LINFOF("BE current: %.10lf, BE previous: %.10lf", stall_rate.at(BE),
-             prev_stall_rate.at(BE));
+      LINFOF("BE current: %.10lf, BE best: %.10lf", stall_rate.at(BE),
+             best_stall_rate.at(BE));
 
-      if (stall_rate.at(BE) < prev_stall_rate.at(BE) * (1 + delta_be)) {
+      if (stall_rate.at(BE) < best_stall_rate.at(BE) * (1 + delta_be)) {
         LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
                                                       current_remote_ratio,
                                                       mem_segments);
-      } else if (stall_rate.at(BE) > prev_stall_rate.at(BE) * (1 - delta_be)) {
+      } else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 - delta_be)) {
         LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
                                                       current_remote_ratio,
@@ -182,10 +182,6 @@ void periodic_monitor() {
             "Nothing can be done (SLO within the operation region && No performance improvement for BE)");
       }
     }
-
-    //At the end update previous stall rate to the current stall rate!
-    //TODO: This has to be debugged - stall rate has changed during the previous iterations!
-    prev_stall_rate = stall_rate;
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", sleeptime, iter);
     LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
