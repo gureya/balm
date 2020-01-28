@@ -100,22 +100,23 @@ void periodic_monitor() {
     LINFO("======================================================");
     LINFOF("Starting a new iteration: %d", iter);
     LINFO("------------------------------------------------------");
-    target_stall_rate = get_target_stall_rate(current_remote_ratio);
+    target_stall_rate = 0.66465022205;  //some fake value
+    //target_stall_rate = get_target_stall_rate(current_remote_ratio);
     LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
 
     //Measure the stall_rate of the applications
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
 
-    if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) >= target_stall_rate * (1 - delta_hp)
-        && stall_rate.at(HP) <= target_stall_rate * (1 + delta_hp)) {
-      LINFO("Nothing can be done (SLO within the operation region)");
-      LINFOF("target: %.10lf, current: %.10lf", target_stall_rate,
-             stall_rate.at(HP));
-    }
+    /*  if (!std::isnan(stall_rate.at(HP))
+     && stall_rate.at(HP) >= target_stall_rate * (1 - delta_hp)
+     && stall_rate.at(HP) <= target_stall_rate * (1 + delta_hp)) {
+     LINFO("Nothing can be done (SLO within the operation region)");
+     LINFOF("target: %.10lf, current: %.10lf", target_stall_rate,
+     stall_rate.at(HP));
+     }*/
 
-    else if (!std::isnan(stall_rate.at(HP))
+    if (!std::isnan(stall_rate.at(HP))
         && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)) {
 
       LINFOF(
@@ -171,11 +172,14 @@ void periodic_monitor() {
         current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
                                                       current_remote_ratio,
                                                       mem_segments);
-      } else {
+      } else if (stall_rate.at(BE) > prev_stall_rate.at(BE) * (1 - delta_be)) {
         LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
                                                       current_remote_ratio,
                                                       mem_segments);
+      } else {
+        LINFO(
+            "Nothing can be done (SLO within the operation region && No performance improvement for BE)");
       }
     }
 
@@ -568,18 +572,6 @@ void bw_manager_test() {
 
 void measure_stall_rate() {
   int iter = 0;
-
-  //First read the memory segments to be moved
-  std::vector<MySharedMemory> mem_segments = get_shared_memory();
-  LINFOF("Number of Segments: %lu", mem_segments.size());
-
-  //some sanity check
-  if (mem_segments.size() == 0) {
-    LINFO("No segments found! Exiting");
-    destroy_shared_memory();
-    stop_all_counters();
-    exit(EXIT_FAILURE);
-  }
 
   while (true) {
     stall_rate = stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,

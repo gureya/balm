@@ -115,9 +115,9 @@ void read_config(void) {
 }
 
 void start_bw_manager() {
-  //periodic_monitor();
+  periodic_monitor();
   //measure_stall_rate();
-  test_fixed_ratio();
+  //test_fixed_ratio();
   //find_optimal_lr_ratio();
   //bw_manager_test();
 }
