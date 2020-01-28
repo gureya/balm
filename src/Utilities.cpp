@@ -100,7 +100,7 @@ void periodic_monitor() {
     LINFO("======================================================");
     LINFOF("Starting a new iteration: %d", iter);
     LINFO("------------------------------------------------------");
-    target_stall_rate = 0.66465022205;  //some fake value
+    target_stall_rate = 0.2170673243;  //some fake value
     //target_stall_rate = get_target_stall_rate(current_remote_ratio);
     LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
 
@@ -189,7 +189,6 @@ void periodic_monitor() {
     iter++;
 
     print_logs();
-
     sleep(sleeptime);
   }
 
@@ -313,6 +312,10 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
           "NAN HP stall rate (STOP page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       current_remote_ratio = i;
+
+      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
+                stall_rate.at(BE));
+
       break;
     }
 
@@ -321,12 +324,20 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
           "SLO has been achieved (STOP page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       current_remote_ratio = i;
+
+      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
+                stall_rate.at(BE));
+
       break;
     } else {
       LINFOF(
           "SLO has NOT been achieved (CONTINUE page migration): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       current_remote_ratio = i;
+
+      my_logger(current_remote_ratio, 100, target_stall_rate, stall_rate.at(HP),
+                stall_rate.at(BE));
+
     }
 
   }
@@ -445,12 +456,19 @@ int release_mba(int optimal_mba, double target_stall_rate,
           "SLO violation has been detected (STOP releasing MBA): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       optimal_mba = i;
+
+      my_logger(current_remote_ratio, optimal_mba, target_stall_rate,
+                stall_rate.at(HP), stall_rate.at(BE));
+
       break;
     } else {
       LINFOF(
           "SLO violation has NOT been detected (CONTINUE releasing MBA): target: %.10lf, current: %.10lf",
           target_stall_rate, stall_rate.at(HP));
       optimal_mba = i;
+
+      my_logger(current_remote_ratio, optimal_mba, target_stall_rate,
+                stall_rate.at(HP), stall_rate.at(BE));
     }
 
   }
