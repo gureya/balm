@@ -311,6 +311,8 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
                            int current_optimal_mba) {
 
   int i;
+  //apply the next ratio immediately
+  current_remote_ratio -= ADAPTATION_STEP;
 
   for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
 
@@ -365,6 +367,8 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
                            int current_optimal_mba) {
 
   int i;
+  //apply the next ratio immediately
+  current_remote_ratio += ADAPTATION_STEP;
 
   for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
 
@@ -441,6 +445,8 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
 int release_mba(int optimal_mba, double target_stall_rate,
                 int current_remote_ratio) {
   int i;
+  //apply the next mba immediately
+  optimal_mba += 10;
 
   for (i = optimal_mba; i <= 100; i += 10) {
 
