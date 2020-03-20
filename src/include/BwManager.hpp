@@ -8,9 +8,12 @@
 #ifndef INCLUDE_BWMANAGER_HPP_
 #define INCLUDE_BWMANAGER_HPP_
 
-#include <vector>
+#include <inttypes.h>
 #include <numa.h>
 #include <sys/time.h>
+
+#include <string>
+#include <vector>
 
 #ifdef __cplusplus
 // check whether a monitoring core has been passed
@@ -22,12 +25,19 @@ extern "C" {
 extern std::vector<int> BWMAN_CORES;
 extern int active_cpus;
 extern int fixed_ratio_value;
+
+extern double target_slo;
+extern std::string server;
+extern int port;
+extern int current_remote_ratio;
+extern int optimal_mba;
+
 // Worker Node
 extern int BWMAN_WORKERS;
 // Maximum number of nodes in the system
 #define MAX_NODES 2
 //#define MAX_NODES numa_num_configured_nodes()
-//the vector to hold the weghts,id pair
+// the vector to hold the weghts,id pair
 extern std::vector<std::pair<double, int>> BWMAN_WEIGHTS;
 // sum of worker nodes weights
 extern double sum_ww;

@@ -182,6 +182,14 @@ test/boost_asio_sockets/server
 test/boost_asio_sockets/AsyncServer
 test/HPCMonitor
 test/C-HPCMonitor
+test/boost_asio_sockets/client_1
+test/boost_asio_sockets/client_2
+test/boost_asio_sockets/server_2
+test/boost_asio_sockets/async_server
+.vs/
 
 # .txt files
 *.txt
+
+#project file
+.project

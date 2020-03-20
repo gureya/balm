@@ -6,45 +6,51 @@
  */
 
 #include "include/Utilities.hpp"
-#include "include/Logger.hpp"
+
 #include "include/BwManager.hpp"
-#include "include/PerformanceCounters.hpp"
+#include "include/Logger.hpp"
+#include "include/MyLogger.hpp"
 #include "include/MySharedMemory.hpp"
 #include "include/PagePlacement.hpp"
-#include "include/MyLogger.hpp"
+#include "include/PerformanceCounters.hpp"
 
-//for set precision
-#include <iostream>
+// for set precision
 #include <iomanip>
+#include <iostream>
+
+// for boost asio
+#include <boost/array.hpp>
+#include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
+
+using boost::asio::ip::tcp;
 
 /////////////////////////////////////////////
-//provide this in a config
+// provide this in a config
 unsigned int _wait_start = 2;
 unsigned int _num_polls = 20;
 unsigned int _num_poll_outliers = 5;
 useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
-double delta_hp = 0.05;  // operational region of the controller (5%)
-double delta_be = 0.001;  // operational region of the controller (5%)
+double delta_hp = 0.05;       // operational region of the controller (5%)
+double delta_be = 0.001;      // operational region of the controller (5%)
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
-//some dynamic global variables
+// some dynamic global variables
 std::vector<double> stall_rate(active_cpus);
 std::vector<double> prev_stall_rate(active_cpus);
 std::vector<double> best_stall_rate(active_cpus);
+double current_latency;
 /////////////////////////////////////////////
 
-//For Logging purposes
+// For Logging purposes
 std::vector<MyLogger> my_logs;
 
 static int run = 1;
 static int sleeptime = 5;
 
-enum {
-  BE = 0,
-  HP
-};
+enum { BE = 0, HP };
 
 using namespace std;
 
@@ -67,16 +73,17 @@ unsigned long time_diff(struct timeval* start, struct timeval* stop) {
 /*
  * Split the execution time of the controller in monitoring periods of length T,
  * during which we monitor the stall rate of HP and BE
+ * abc_numa = page migration + mba
  *
  */
-void periodic_monitor() {
-
-  //First read the memory segments to be moved
+void abc_numa() {
+  // First read the memory segments to be moved
+  // Move this to a different function i.e., memory initializer
   std::vector<MySharedMemory> mem_segments = get_shared_memory();
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
 
-  //some sanity check
+  // some sanity check
   if (mem_segments.size() == 0) {
     LINFO("No segments found! Exiting");
     destroy_shared_memory();
@@ -84,9 +91,7 @@ void periodic_monitor() {
     exit(EXIT_FAILURE);
   }
 
-  int current_remote_ratio = 30;
-  int optimal_mba = 100;
-  double target_stall_rate;
+  // double target_stall_rate;
   int iter = 0;
 
   int i;
@@ -98,20 +103,21 @@ void periodic_monitor() {
          best_stall_rate.at(BE), prev_stall_rate.at(BE));
 
   while (run) {
-
-    //TODO: this can be inside the loop or outside the loop!
-    //TODO: Define the operation region of the controller
+    // TODO: this can be inside the loop or outside the loop!
+    // TODO: Define the operation region of the controller
     LINFO("======================================================");
     LINFOF("Starting a new iteration: %d", iter);
     LINFO("------------------------------------------------------");
-    target_stall_rate = 0.5030852868;  //some fake value
-    //target_stall_rate = get_target_stall_rate(current_remote_ratio);
-    LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
+    // target_stall_rate = 0.5030852868;  // some fake value
+    // target_stall_rate = get_target_stall_rate(current_remote_ratio);
+    // LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
 
-    //Measure the stall_rate of the applications
-    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                        _num_poll_outliers);
+    // Measure the stall_rate of the applications
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
+    // Measure the 99th percentile of the HP application
+    current_latency = get_percentile_latency();
     /*  if (!std::isnan(stall_rate.at(HP))
      && stall_rate.at(HP) >= target_stall_rate * (1 - delta_hp)
      && stall_rate.at(HP) <= target_stall_rate * (1 + delta_hp)) {
@@ -120,47 +126,41 @@ void periodic_monitor() {
      stall_rate.at(HP));
      }*/
 
-    if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)) {
-
+    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
-          "SLO has been violated (ABOVE operation region) target: %.10lf, current: %.10lf",
-          target_stall_rate, stall_rate.at(HP));
+          "SLO has been violated (ABOVE operation region) target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
 
       if (current_remote_ratio != 0) {
-        //Enforce MBA
+        // Enforce MBA
         LINFO("------------------------------------------------------");
-        optimal_mba = search_optimal_mba(target_stall_rate, optimal_mba,
-                                         current_remote_ratio);
+        optimal_mba = search_optimal_mba();
 
-        //Enforce Lazy Page migration while releasing MBA
+        // Enforce Lazy Page migration while releasing MBA
         while (optimal_mba != 100) {
-          //apply page migration
+          // apply page migration
           LINFO("------------------------------------------------------");
-          current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
-                                                        current_remote_ratio,
-                                                        mem_segments,
-                                                        optimal_mba);
-          //release MBA
+          current_remote_ratio = apply_pagemigration_rl(mem_segments);
+          // release MBA
           LINFO("------------------------------------------------------");
-          optimal_mba = release_mba(optimal_mba, target_stall_rate,
-                                    current_remote_ratio);
+          optimal_mba = release_mba();
         }
 
       } else {
         LINFO(
-            "Nothing can be done about SLO violation (Change in workload!), Find new target SLO!");
-        LINFOF("target: %.10lf, current: %.10lf", target_stall_rate,
-               stall_rate.at(HP));
+            "Nothing can be done about SLO violation (Change in workload!), "
+            "Find new target SLO!");
+        LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
 
     }
 
     else {
-
       LINFOF(
-          "SLO has NOT been violated (BELOW operation region) target: %.10lf, current: %.10lf",
-          target_stall_rate, stall_rate.at(HP));
+          "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
 
       /*
        * Optimize page migration either way (local to remote and vice versa)!
@@ -175,19 +175,14 @@ void periodic_monitor() {
 
       if (stall_rate.at(BE) < best_stall_rate.at(BE) * (1 + delta_be)) {
         LINFO("------------------------------------------------------");
-        current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
-                                                      current_remote_ratio,
-                                                      mem_segments,
-                                                      optimal_mba);
+        current_remote_ratio = apply_pagemigration_lr(mem_segments);
       } else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 - delta_be)) {
         LINFO("------------------------------------------------------");
-        current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
-                                                      current_remote_ratio,
-                                                      mem_segments,
-                                                      optimal_mba);
+        current_remote_ratio = apply_pagemigration_rl(mem_segments);
       } else {
         LINFO(
-            "Nothing can be done (SLO within the operation region && No performance improvement for BE)");
+            "Nothing can be done (SLO within the operation region && No "
+            "performance improvement for BE)");
       }
     }
 
@@ -199,7 +194,225 @@ void periodic_monitor() {
     print_logs();
     sleep(sleeptime);
   }
+}
 
+/*
+ * page migration only
+ *
+ */
+void page_migration_only() {
+  // First read the memory segments to be moved
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+
+  LINFOF("Number of Segments: %lu", mem_segments.size());
+
+  // some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
+
+  int iter = 0;
+
+  int i;
+  for (i = 0; i < active_cpus; i++) {
+    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
+    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
+  }
+  LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
+         best_stall_rate.at(BE), prev_stall_rate.at(BE));
+
+  while (run) {
+    // TODO: this can be inside the loop or outside the loop!
+    // TODO: Define the operation region of the controller
+    LINFO("======================================================");
+    LINFOF("Starting a new iteration: %d", iter);
+    LINFO("------------------------------------------------------");
+
+    // Measure the stall_rate of the applications
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // Measure the 99th percentile of the HP application
+    current_latency = get_percentile_latency();
+
+    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
+      LINFOF(
+          "SLO has been violated (ABOVE operation region) target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
+
+      // apply page migration
+      LINFO("------------------------------------------------------");
+      current_remote_ratio = apply_pagemigration_rl(mem_segments);
+    }
+
+    else {
+      LINFOF(
+          "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
+
+      /*
+       * Optimize page migration either way (local to remote and vice versa)!
+       * if the current stall rate is smaller than the previous stall rate,
+       * move pages from local to remote node
+       * Otherwise the BE may have become less memory-intensive,
+       * move pages from remote to local node
+       *
+       */
+      LINFOF("BE current: %.10lf, BE best: %.10lf", stall_rate.at(BE),
+             best_stall_rate.at(BE));
+
+      if (stall_rate.at(BE) < best_stall_rate.at(BE) * (1 + delta_be)) {
+        LINFO("------------------------------------------------------");
+        current_remote_ratio = apply_pagemigration_lr(mem_segments);
+      } else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 - delta_be)) {
+        LINFO("------------------------------------------------------");
+        current_remote_ratio = apply_pagemigration_rl(mem_segments);
+      } else {
+        LINFO(
+            "Nothing can be done (SLO within the operation region && No "
+            "performance improvement for BE)");
+      }
+    }
+
+    LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
+    LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
+           optimal_mba);
+    iter++;
+
+    print_logs();
+    sleep(sleeptime);
+  }
+}
+
+/*
+ * MBA only Mode
+ *
+ */
+void mba_only() {
+  // First read the memory segments to be moved
+  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+
+  LINFOF("Number of Segments: %lu", mem_segments.size());
+
+  // some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
+
+  int iter = 0;
+
+  int i;
+  for (i = 0; i < active_cpus; i++) {
+    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
+    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
+  }
+  LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
+         best_stall_rate.at(BE), prev_stall_rate.at(BE));
+
+  while (run) {
+    // TODO: this can be inside the loop or outside the loop!
+    // TODO: Define the operation region of the controller
+    LINFO("======================================================");
+    LINFOF("Starting a new iteration: %d", iter);
+    LINFO("------------------------------------------------------");
+
+    // Measure the stall_rate of the applications
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // Measure the 99th percentile of the HP application
+    current_latency = get_percentile_latency();
+
+    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
+      LINFOF(
+          "SLO has been violated (ABOVE operation region) target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
+
+      if (current_remote_ratio != 0) {
+        // Enforce MBA
+        LINFO("------------------------------------------------------");
+        optimal_mba = search_optimal_mba();
+
+      } else {
+        LINFO(
+            "Nothing can be done about SLO violation (Change in workload!), "
+            "Find new target SLO!");
+        LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
+      }
+
+    }
+
+    else {
+      LINFOF(
+          "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
+
+      /*
+       * Optimize page migration either way (local to remote and vice versa)!
+       * if the current stall rate is smaller than the previous stall rate,
+       * move pages from local to remote node
+       * Otherwise the BE may have become less memory-intensive,
+       * move pages from remote to local node
+       *
+       */
+      LINFOF("BE current: %.10lf, BE best: %.10lf", stall_rate.at(BE),
+             best_stall_rate.at(BE));
+
+      // Release MBA
+      while (optimal_mba != 100) {
+        LINFO("------------------------------------------------------");
+        optimal_mba = release_mba();
+      }
+    }
+
+    LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
+    LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
+           optimal_mba);
+    iter++;
+
+    print_logs();
+    sleep(sleeptime);
+  }
+}
+
+/*
+ * linux default Mode
+ *
+ */
+void linux_default() {
+  int iter = 0;
+
+  while (run) {
+    LINFO("======================================================");
+    LINFOF("Starting a new iteration: %d", iter);
+    LINFO("------------------------------------------------------");
+
+    // Measure the stall_rate of the applications
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // Measure the 99th percentile of the HP application
+    current_latency = get_percentile_latency();
+
+    std::string my_action = "iter-" + std::to_string(iter);
+    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
+
+    iter++;
+
+    print_logs();
+    sleep(sleeptime);
+  }
 }
 
 /*
@@ -208,13 +421,11 @@ void periodic_monitor() {
  * After measuring set MBA to the maximum value
  *
  * Handling memory-intensive applications:
- * You can use the STOP signal to pause a process, and CONT to resume its execution:
- * kill -STOP ${PID}
- * kill -CONT ${PID}
+ * You can use the STOP signal to pause a process, and CONT to resume its
+ * execution: kill -STOP ${PID} kill -CONT ${PID}
  *
  */
-double get_target_stall_rate(int current_remote_ratio) {
-
+double get_target_stall_rate() {
   double target_stall_rate;
   int min_mba = 10;
   int max_mba = 100;
@@ -224,9 +435,9 @@ double get_target_stall_rate(int current_remote_ratio) {
     apply_mba(min_mba);
   }
 
-  //Measure the stall_rate of the applications
-  stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                      _num_poll_outliers);
+  // Measure the stall_rate of the applications
+  stall_rate =
+      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
   target_stall_rate = stall_rate.at(HP);
 
@@ -238,6 +449,68 @@ double get_target_stall_rate(int current_remote_ratio) {
 }
 
 /*
+ * The functions below:
+ * Measure the latency of the HPA application
+ *
+ */
+double get_percentile_latency() {
+  double service_time;
+  int min_mba = 10;
+  int max_mba = 100;
+
+  LINFO("Getting the current percentile latency for the HP");
+  if (current_remote_ratio != 0) {
+    apply_mba(min_mba);
+  }
+
+  // poll the latency of the applications
+  service_time = connect_to_client();
+
+  if (current_remote_ratio != 0) {
+    apply_mba(max_mba);
+  }
+
+  return service_time;
+}
+
+double connect_to_client() {
+  double service_time = 0;
+
+  try {
+    // socket creation
+    boost::system::error_code error;
+    boost::asio::io_service io_service;
+    tcp::socket socket(io_service);
+
+    // connection
+    std::cout << "[Client] Connecting to server..." << std::endl;
+    socket.connect(
+        tcp::endpoint(boost::asio::ip::address::from_string(server), port),
+        error);
+
+    for (;;) {
+      boost::array<char, 128> buf;
+
+      size_t len = socket.read_some(boost::asio::buffer(buf), error);
+
+      if (error == boost::asio::error::eof)
+        break;  // Connection closed cleanly by peer.
+      else if (error)
+        throw boost::system::system_error(error);  // Some other error.
+
+      // std::cout.write(buf.data(), len);
+      service_time = boost::lexical_cast<double>(buf.data());
+    }
+  } catch (std::exception& e) {
+    LINFO("Problem connecting to the client");
+    std::cerr << e.what() << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  return service_time;
+}
+
+/*
  * Search the highest MBA that still meets the target SLO
  * Apply binary search to reduce the search space
  * Valid MBA states in our case: 100, 90, 60, 50, 40, 30, 20, 10
@@ -245,9 +518,7 @@ double get_target_stall_rate(int current_remote_ratio) {
  *
  */
 
-int search_optimal_mba(double target_stall_rate, int current_optimal_mba,
-                       int current_remote_ratio) {
-
+int search_optimal_mba() {
   int i;
   double progress;
 
@@ -255,100 +526,107 @@ int search_optimal_mba(double target_stall_rate, int current_optimal_mba,
   int previous_mba = 40;
 
   while (i != 10 || i != 30 || i != 50 || i != 90) {
-
     if (i == 0) {
       LINFO("End of valid MBA states, breaking!");
-      current_optimal_mba = previous_mba;
+      optimal_mba = previous_mba;
       break;
     }
 
     apply_mba(i);
 
-    //Measure the stall_rate of the applications after enforcing MBA
-    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                        _num_poll_outliers);
+    // Measure the stall_rate of the applications after enforcing MBA
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // Measure the current latency
+    current_latency = get_percentile_latency();
 
     std::string my_action = "apply_mba-" + std::to_string(i);
-    my_logger(current_remote_ratio, i, target_stall_rate, stall_rate.at(HP),
-              stall_rate.at(BE), my_action);
+    my_logger(current_remote_ratio, i, target_slo, current_latency,
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
 
-    //sanity checker
-    if (std::isnan(stall_rate.at(HP))) {
-      LINFO("NAN target stall rate, revert to the previous state and break!");
-      apply_mba(current_optimal_mba);
+    // sanity checker
+    if (current_latency == 0) {
+      LINFO("0 latency reported, revert to the previous state and break!");
+      apply_mba(optimal_mba);
       break;
     }
 
-    if (stall_rate.at(HP) <= target_stall_rate * (1 + delta_hp)) {
-      LINFOF("SLO has been achieved: target: %.10lf, current: %.10lf",
-             target_stall_rate, stall_rate.at(HP));
-      current_optimal_mba = i;
+    if (current_latency <= target_slo * (1 + delta_hp)) {
+      LINFOF("SLO has been achieved: target: %.0lf, current: %.0lf", target_slo,
+             current_latency);
+      optimal_mba = i;
       break;
     }
 
     else {
-      LINFOF("SLO has NOT been achieved: target: %.10lf, current: %.10lf",
-             target_stall_rate, stall_rate.at(HP));
+      LINFOF("SLO has NOT been achieved:  target: %.0lf, current: %.0lf",
+             target_slo, current_latency);
     }
 
-    progress = stall_rate.at(HP) - target_stall_rate;
-    LINFOF("Progress: %.10lf", progress);
+    // progress = stall_rate.at(HP) - target_stall_rate;
+    progress = current_latency - target_slo;
+    LINFOF("Progress: %.2lf", progress);
     previous_mba = i;
     i = mba_binary_search(i, progress);
-    current_optimal_mba = i;
+    optimal_mba = i;
   }
 
-  LINFOF("Optimal MBA value: %d", current_optimal_mba);
-  return current_optimal_mba;
+  LINFOF("Optimal MBA value: %d", optimal_mba);
+  return optimal_mba;
 }
 
 /*
  * Page migrations from remote to local node (HP to BE nodes)
  * TODO: Handle transient cases
  */
-int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
-                           std::vector<MySharedMemory> mem_segments,
-                           int current_optimal_mba) {
-
+int apply_pagemigration_rl(std::vector<MySharedMemory> mem_segments) {
   int i;
-  //apply the next ratio immediately
+  // apply the next ratio immediately
   current_remote_ratio -= ADAPTATION_STEP;
 
   for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
-
     LINFOF("Going to check a ratio of %d", i);
     place_all_pages(mem_segments, i);
 
-    //Measure the stall_rate of the applications
-    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                        _num_poll_outliers);
+    // Measure the stall_rate of the applications
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // Measure the current latency measurement
+    current_latency = get_percentile_latency();
+
+    // update the BE best stall rate
+    best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
-    my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
+    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
               stall_rate.at(HP), stall_rate.at(BE), my_action);
 
-    //sanity check
-    if (std::isnan(stall_rate.at(HP))) {
+    // sanity check
+    if (current_latency == 0) {
       LINFOF(
-          "NAN HP stall rate (STOP page migration): target: %.10lf, current: %.10lf",
-          target_stall_rate, stall_rate.at(HP));
+          "NAN HP latency (STOP page migration): target: %.0lf, current: %.0lf",
+          target_slo, current_latency);
       current_remote_ratio = i;
       break;
     }
 
-    if (stall_rate.at(HP) <= target_stall_rate * (1 + delta_hp)) {
+    if (current_latency <= target_slo * (1 + delta_hp)) {
       LINFOF(
-          "SLO has been achieved (STOP page migration): target: %.10lf, current: %.10lf",
-          target_stall_rate, stall_rate.at(HP));
+          "SLO has been achieved (STOP page migration): target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
       current_remote_ratio = i;
       break;
     } else {
       LINFOF(
-          "SLO has NOT been achieved (CONTINUE page migration): target: %.10lf, current: %.10lf",
-          target_stall_rate, stall_rate.at(HP));
+          "SLO has NOT been achieved (CONTINUE page migration): target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
       current_remote_ratio = i;
     }
-
   }
 
   LINFOF("Current remote ratio: %d", current_remote_ratio);
@@ -362,38 +640,36 @@ int apply_pagemigration_rl(double target_stall_rate, int current_remote_ratio,
  *
  */
 
-int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
-                           std::vector<MySharedMemory> mem_segments,
-                           int current_optimal_mba) {
-
+int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
   int i;
-  //apply the next ratio immediately
+  // apply the next ratio immediately
   current_remote_ratio += ADAPTATION_STEP;
 
   for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
-
     LINFOF("Going to check a ratio of %d", i);
     if (i != 0) {
       place_all_pages(mem_segments, i);
     }
 
-    //Measure the stall_rate of the applications
-    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                        _num_poll_outliers);
+    // Measure the stall_rate of the applications
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
-    best_stall_rate.at(BE) = std::min(best_stall_rate.at(BE),
-                                      stall_rate.at(BE));
+    // Measure the current latency measurement
+    current_latency = get_percentile_latency();
+
+    // update the BE best stall rate
+    best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
-    my_logger(current_remote_ratio, current_optimal_mba, target_stall_rate,
+    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
               stall_rate.at(HP), stall_rate.at(BE), my_action);
 
-    //First check if we are violating the SLO
-    if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)) {
-
-      LINFOF("SLO has been violated target: %.10lf, current(HP): %.10lf",
-             target_stall_rate, stall_rate.at(HP));
+    // First check if we are violating the SLO
+    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
+      LINFOF("SLO has been violated target: %.0lf, current(HP): %.0lf",
+             target_slo, current_latency);
       LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
              stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
       if (i != 0) {
@@ -406,10 +682,9 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
       break;
     }
 
-    //then check if there is any performance improvement for BE
-    else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 + delta_be)
-        || std::isnan(stall_rate.at(BE))) {
-
+    // then check if there is any performance improvement for BE
+    else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 + delta_be) ||
+             std::isnan(stall_rate.at(BE))) {
       LINFO("No performance improvement for the BE");
       LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
              stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
@@ -423,12 +698,16 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
       break;
     }
 
-    //if performance improvement and no SLO violation continue climbing
+    // if performance improvement and no SLO violation continue climbing
     else {
       LINFO(
-          "Performance improvement for BE without SLO Violation, continue climbing");
-      LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
-             stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
+          "Performance improvement for BE without SLO Violation, continue "
+          "climbing");
+      LINFOF(
+          "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, "
+          "latency(HP): %.0lf",
+          stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
+          current_latency);
       current_remote_ratio = i;
     }
   }
@@ -442,41 +721,41 @@ int apply_pagemigration_lr(double target_stall_rate, int current_remote_ratio,
  * continue increasing the MBA value until the maximum value!
  *
  */
-int release_mba(int optimal_mba, double target_stall_rate,
-                int current_remote_ratio) {
+int release_mba() {
   int i;
-  //apply the next mba immediately
+  // apply the next mba immediately
   optimal_mba += 10;
 
   for (i = optimal_mba; i <= 100; i += 10) {
-
-    if (i == 70 || i == 80)
-      continue;
+    if (i == 70 || i == 80) continue;
 
     apply_mba(i);
-    //Measure the stall_rate of the applications
-    stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                        _num_poll_outliers);
+    // Measure the stall_rate of the applications
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // Measure the current latency
+    current_latency = get_percentile_latency();
 
     std::string my_action = "apply_mba-" + std::to_string(i);
-    my_logger(current_remote_ratio, i, target_stall_rate, stall_rate.at(HP),
-              stall_rate.at(BE), my_action);
+    my_logger(current_remote_ratio, i, target_slo, current_latency,
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
 
-    if (!std::isnan(stall_rate.at(HP))
-        && stall_rate.at(HP) > target_stall_rate * (1 + delta_hp)
-        && current_remote_ratio != 0) {
+    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp) &&
+        current_remote_ratio != 0) {
       LINFOF(
-          "SLO violation has been detected (STOP releasing MBA): target: %.10lf, current: %.10lf",
-          target_stall_rate, stall_rate.at(HP));
+          "SLO violation has been detected (STOP releasing MBA): target: "
+          "%.0lf, current: %.0lf",
+          target_slo, current_latency);
       optimal_mba = i;
       break;
     } else {
       LINFOF(
-          "SLO violation has NOT been detected (CONTINUE releasing MBA): target: %.10lf, current: %.10lf",
-          target_stall_rate, stall_rate.at(HP));
+          "SLO violation has NOT been detected (CONTINUE releasing MBA): "
+          "target: %.0lf, current: %.0lf",
+          target_slo, current_latency);
       optimal_mba = i;
     }
-
   }
 
   LINFOF("Optimal MBA: %d", optimal_mba);
@@ -529,15 +808,13 @@ int mba_binary_search(int current_mba, double progress) {
  */
 
 void bw_manager_test() {
-  int current_remote_ratio = 0;
-  int current_optimal_mba = 100;
-  double target_stall_rate;
+  // double target_stall_rate;
 
-  //First read the memory segments to be moved
+  // First read the memory segments to be moved
   std::vector<MySharedMemory> mem_segments = get_shared_memory();
   LINFOF("Number of Segments: %lu", mem_segments.size());
 
-  //some sanity check
+  // some sanity check
   if (mem_segments.size() == 0) {
     LINFO("No segments found! Exiting");
     destroy_shared_memory();
@@ -548,95 +825,57 @@ void bw_manager_test() {
   LINFO("==============================================");
   LINFO("TESTING get_target_stall_rate function");
   LINFO("----------------------------------------------");
-  target_stall_rate = get_target_stall_rate(current_remote_ratio);
-  LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
+  LINFOF("Target SLO at this point: %.0lf", target_slo);
 
-  //target_stall_rate = 0.001;  //some fake value
-  //Measure the stall_rate of the applications
-  stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                      _num_poll_outliers);
+  // Measure the stall_rate of the applications
+  stall_rate =
+      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
-  LINFOF("Stall rate: target: %.10lf, current: %.10lf", target_stall_rate,
-         stall_rate.at(HP));
+  // Measure the latency measurement
+  current_latency = get_percentile_latency();
+
+  LINFOF("Stall rate: target: %.0lf, current: %.10lf, latency: %.0lf",
+         target_slo, stall_rate.at(HP), current_latency);
 
   LINFO("==============================================");
   LINFO("TESTING search_optimal_mba function");
   LINFO("----------------------------------------------");
-  current_optimal_mba = search_optimal_mba(target_stall_rate,
-                                           current_optimal_mba,
-                                           current_remote_ratio);
+  optimal_mba = search_optimal_mba();
 
-  //target_stall_rate = 10.001;  //some fake value
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_lr function");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
-                                                current_remote_ratio,
-                                                mem_segments,
-                                                current_optimal_mba);
+  current_remote_ratio = apply_pagemigration_lr(mem_segments);
 
-  //target_stall_rate = 0.001;  //some fake value
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_rl function");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_rl(target_stall_rate,
-                                                current_remote_ratio,
-                                                mem_segments,
-                                                current_optimal_mba);
+  current_remote_ratio = apply_pagemigration_rl(mem_segments);
 
-  //target_stall_rate = 10.001;  //some fake value
   LINFO("==============================================");
   LINFO("TESTING release_mba function");
   LINFO("----------------------------------------------");
-  current_optimal_mba = release_mba(current_optimal_mba, target_stall_rate,
-                                    current_remote_ratio);
+  optimal_mba = release_mba();
 
   LINFO("==============================================");
   LINFOF("FINAL VALUES: current_optimal_mba: %d, current_remote_ratio: %d",
-         current_optimal_mba, current_remote_ratio);
-}
-
-void measure_stall_rate() {
-  int iter = 0;
-  double target_stall_rate = 0.5030852868;
-
-  while (true) {
-    stall_rate = stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                                     _num_poll_outliers);
-
-    std::string my_action = "apply_ratio-" + std::to_string(iter);
-    my_logger(0, 0, target_stall_rate, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
-
-    print_logs();
-
-    LINFOF("iter: %d, stall_rate(BE): %.10lf, stall_rate(HP): %.10lf", iter,
-           stall_rate.at(BE), stall_rate.at(HP));
-    iter++;
-    //sleep(sleeptime);
-  }
+         optimal_mba, current_remote_ratio);
 }
 
 void find_optimal_lr_ratio() {
-  int current_remote_ratio = 0;
-  int current_mba_level = 100;
-  double target_stall_rate;
+  // double target_stall_rate;
 
-  //First read the memory segments to be moved
+  // First read the memory segments to be moved
   std::vector<MySharedMemory> mem_segments = get_shared_memory();
   LINFOF("Number of Segments: %lu", mem_segments.size());
 
-  //some sanity check
+  // some sanity check
   if (mem_segments.size() == 0) {
     LINFO("No segments found! Exiting");
     destroy_shared_memory();
     stop_all_counters();
     exit(EXIT_FAILURE);
   }
-
-  //target_stall_rate = get_target_stall_rate(current_remote_ratio);
-  target_stall_rate = 0.66465022205;  //some fake value
-  LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
 
   int i;
   for (i = 0; i < active_cpus; i++) {
@@ -649,11 +888,9 @@ void find_optimal_lr_ratio() {
   LINFO("==============================================");
   LINFO("Finding optimal Local-remote ratio for BE");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_lr(target_stall_rate,
-                                                current_remote_ratio,
-                                                mem_segments,
-                                                current_mba_level);
-  //print the logs
+  current_remote_ratio = apply_pagemigration_lr(mem_segments);
+
+  // print the logs
   print_logs();
 }
 
@@ -673,7 +910,8 @@ void print_logs() {
 
     cout << my_logs.at(j).current_remote_ratio << "\t"
          << my_logs.at(j).current_mba_level << "\t"
-         << my_logs.at(j).HPA_target_stall_rate << "\t"
+         << (int)my_logs.at(j).HPA_target_slo << "\t"
+         << "\t" << (int)my_logs.at(j).HPA_currency_latency << "\t"
          << my_logs.at(j).HPA_stall_rate << "\t" << my_logs.at(j).BEA_stall_rate
          << "\t" << my_logs.at(j).action << endl;
   }
@@ -682,67 +920,67 @@ void print_logs() {
 /*
  * Log all the current information
  */
-void my_logger(int crr, int cml, double hpt, double hps, double bes,
+void my_logger(int crr, int cml, double hpt, double hcl, double hps, double bes,
                std::string action) {
-  //Log all the current information:
-  MyLogger mylogger(crr, cml, hpt, hps, bes, action);
+  // Log all the current information:
+  MyLogger mylogger(crr, cml, hpt, hcl, hps, bes, action);
 
   my_logs.push_back(mylogger);
 }
 
 void test_fixed_ratio() {
-  //First read the memory segments to be moved
+  // First read the memory segments to be moved
   std::vector<MySharedMemory> mem_segments = get_shared_memory();
   LINFOF("Number of Segments: %lu", mem_segments.size());
 
-  //some sanity check
+  // some sanity check
   if (mem_segments.size() == 0) {
     LINFO("No segments found! Exiting");
     destroy_shared_memory();
     stop_all_counters();
     exit(EXIT_FAILURE);
   }
-  stall_rate = stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                                   _num_poll_outliers);
+  stall_rate =
+      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
   LINFOF("Before: stall_rate(BE): %.10lf, stall_rate(HP): %.10lf",
          stall_rate.at(BE), stall_rate.at(HP));
   LINFOF("Going to check a ratio of %d", fixed_ratio_value);
   place_all_pages(mem_segments, fixed_ratio_value);
-  stall_rate = stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                                   _num_poll_outliers);
+  stall_rate =
+      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
   LINFOF("After: stall_rate(BE): %.10lf, stall_rate(HP): %.10lf",
          stall_rate.at(BE), stall_rate.at(HP));
 }
 
-void read_weights(char filename[]) {
-  FILE * fp;
-  char * line = NULL;
+void read_weights(std::string filename) {
+  FILE* fp;
+  char* line = NULL;
   size_t len = 0;
   ssize_t read;
 
   const char s[2] = ",";
-  char *token;
+  char* token;
 
   int j = 0;
 
   double weight;
   int id;
 
-  fp = fopen(filename, "r");
+  fp = fopen(filename.c_str(), "r");
   if (fp == NULL) {
     printf("Weights have not been provided!\n");
     exit(EXIT_FAILURE);
   }
 
   while ((read = getline(&line, &len, fp)) != -1) {
-    char *strtok_saveptr;
+    char* strtok_saveptr;
     // printf("Retrieved line of length %zu :\n", read);
-    //printf("%s", line);
+    // printf("%s", line);
 
     // get the first token
     token = strtok_r(line, s, &strtok_saveptr);
     weight = atof(token);
-    //printf(" %s\n", token);
+    // printf(" %s\n", token);
 
     // get the second token
     token = strtok_r(NULL, s, &strtok_saveptr);
@@ -750,11 +988,11 @@ void read_weights(char filename[]) {
 
     BWMAN_WEIGHTS.push_back(make_pair(weight, id));
 
-    //printf(" %s\n", token);
+    // printf(" %s\n", token);
     j++;
   }
 
-  //sort the vector in ascending order
+  // sort the vector in ascending order
   sort(BWMAN_WEIGHTS.begin(), BWMAN_WEIGHTS.end());
 
   for (j = 0; j < MAX_NODES; j++) {
@@ -763,8 +1001,7 @@ void read_weights(char filename[]) {
   }
 
   fclose(fp);
-  if (line)
-    free(line);
+  if (line) free(line);
 
   LINFO("weights initialized!");
 
@@ -829,17 +1066,18 @@ void read_weights(char filename[]) {
  //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
  minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
  LINFOF(
- "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
- j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
- interval_diff.at(j), minimum_interference.at(j));
+ "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff:
+ %1.10lf noise: %1.10lf", j, i, stall_rate.at(j), prev_stall_rate.at(j),
+ best_stall_rate.at(j), interval_diff.at(j), minimum_interference.at(j));
 
  best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
  }
 
- // Assume App 0 is memory intensive (Best-Effort) and App 1 is compute intensive (High-Priority)!
- // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
- if (interval_diff.at(1) > minimum_interference.at(1)) {
- LINFO("Hmm...Is this really an interference?")
+ // Assume App 0 is memory intensive (Best-Effort) and App 1 is compute
+ intensive (High-Priority)!
+ // First check if we are hurting the performance of the compute intensive app
+ upto a certain percentage (5%) if (interval_diff.at(1) >
+ minimum_interference.at(1)) { LINFO("Hmm...Is this really an interference?")
  std::vector<double> confirm_stall_rate_0 = get_average_stall_rate(
  _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
  double interval_diff_0 = confirm_stall_rate_0.at(1)
@@ -856,8 +1094,8 @@ void read_weights(char filename[]) {
  LINFOF("Final Ratio: %.2f", i);
  }
  LINFO(
- "[Phase 1]: Exceeded the Minimal allowable interference for App 1, continue climbing!");
- break;
+ "[Phase 1]: Exceeded the Minimal allowable interference for App 1, continue
+ climbing!"); break;
  }
  }
 
@@ -878,14 +1116,15 @@ void read_weights(char filename[]) {
  LINFOF("Final Ratio: %.2f", i);
  }
  LINFO(
- "[Phase 2]: Minimal allowable interference for App 1 achieved, stop climbing!");
- break;
+ "[Phase 2]: Minimal allowable interference for App 1 achieved, stop
+ climbing!"); break;
  }
  }
 
  else {
  LINFO(
- "[Phase 1 & 2]: Performance improvement for App 0 without interfering App 1, continue climbing");
+ "[Phase 1 & 2]: Performance improvement for App 0 without interfering App 1,
+ continue climbing");
  }
  //At the end update previous stall rate to the current stall rate!
  for (j = 0; j < active_cpus; j++) {
@@ -911,9 +1150,9 @@ void read_weights(char filename[]) {
  //interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
  minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
  LINFOF(
- "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
- j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
- interval_diff.at(j), minimum_interference.at(j));
+ "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff:
+ %1.10lf noise: %1.10lf", j, i, stall_rate.at(j), prev_stall_rate.at(j),
+ best_stall_rate.at(j), interval_diff.at(j), minimum_interference.at(j));
 
  best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
  }
@@ -966,18 +1205,18 @@ void read_weights(char filename[]) {
  interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
  minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
  LINFOF(
- "App: %d MBA Level: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
- j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
- interval_diff.at(j), minimum_interference.at(j));
+ "App: %d MBA Level: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf)
+ diff: %1.10lf noise: %1.10lf", j, i, stall_rate.at(j), prev_stall_rate.at(j),
+ best_stall_rate.at(j), interval_diff.at(j), minimum_interference.at(j));
 
  //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
  }
 
  // Assume App 0 is memory intensive and App 1 is compute intensive
- // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
- if (interval_diff.at(1) > minimum_interference.at(1)) {
- LINFO(
- "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+ // First check if we are hurting the performance of the compute intensive app
+ upto a certain percentage (5%) if (interval_diff.at(1) >
+ minimum_interference.at(1)) { LINFO( "Exceeded the Minimal allowable
+ interference for App 1, continue climbing!");
  }
 
  else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
@@ -1053,18 +1292,18 @@ void read_weights(char filename[]) {
  interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
  minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
  LINFOF(
- "App: %d MBA level: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
- j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
- interval_diff.at(j), minimum_interference.at(j));
+ "App: %d MBA level: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf)
+ diff: %1.10lf noise: %1.10lf", j, i, stall_rate.at(j), prev_stall_rate.at(j),
+ best_stall_rate.at(j), interval_diff.at(j), minimum_interference.at(j));
 
  //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
  }
 
  // Assume App 0 is memory intensive and App 1 is compute intensive
- // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
- if (interval_diff.at(1) > minimum_interference.at(1)) {
- LINFO(
- "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+ // First check if we are hurting the performance of the compute intensive app
+ upto a certain percentage (5%) if (interval_diff.at(1) >
+ minimum_interference.at(1)) { LINFO( "Exceeded the Minimal allowable
+ interference for App 1, continue climbing!");
  }
 
  else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
@@ -1137,18 +1376,18 @@ void read_weights(char filename[]) {
  interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
  minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
  LINFOF(
- "App: %d MBA level: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
- j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
- interval_diff.at(j), minimum_interference.at(j));
+ "App: %d MBA level: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf)
+ diff: %1.10lf noise: %1.10lf", j, i, stall_rate.at(j), prev_stall_rate.at(j),
+ best_stall_rate.at(j), interval_diff.at(j), minimum_interference.at(j));
 
  //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
  }
 
  // Assume App 0 is memory intensive and App 1 is compute intensive
- // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
- if (interval_diff.at(1) > minimum_interference.at(1)) {
- LINFO(
- "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+ // First check if we are hurting the performance of the compute intensive app
+ upto a certain percentage (5%) if (interval_diff.at(1) >
+ minimum_interference.at(1)) { LINFO( "Exceeded the Minimal allowable
+ interference for App 1, continue climbing!");
  }
 
  else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
@@ -1238,18 +1477,19 @@ void read_weights(char filename[]) {
  interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
  minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
  LINFOF(
- "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
- j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
- interval_diff.at(j), minimum_interference.at(j));
+ "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff:
+ %1.10lf noise: %1.10lf", j, i, stall_rate.at(j), prev_stall_rate.at(j),
+ best_stall_rate.at(j), interval_diff.at(j), minimum_interference.at(j));
 
  best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
  }
 
- // Assume App 0 is memory intensive (Best-Effort) and App 1 is compute intensive (High-Priority)!
- // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
- if (interval_diff.at(1) > minimum_interference.at(1)) {
- LINFO(
- "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+ // Assume App 0 is memory intensive (Best-Effort) and App 1 is compute
+ intensive (High-Priority)!
+ // First check if we are hurting the performance of the compute intensive app
+ upto a certain percentage (5%) if (interval_diff.at(1) >
+ minimum_interference.at(1)) { LINFO( "Exceeded the Minimal allowable
+ interference for App 1, continue climbing!");
  }
 
  else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001
@@ -1332,18 +1572,18 @@ void read_weights(char filename[]) {
  interval_diff.at(j) = round(interval_diff.at(j) * 100) / 100;
  minimum_interference.at(j) = (noise_allowed * prev_stall_rate.at(j));
  LINFOF(
- "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff: %1.10lf noise: %1.10lf",
- j, i, stall_rate.at(j), prev_stall_rate.at(j), best_stall_rate.at(j),
- interval_diff.at(j), minimum_interference.at(j));
+ "App: %d Ratio: %.2f StallRate: %1.10lf (previous %1.10lf; best %1.10lf) diff:
+ %1.10lf noise: %1.10lf", j, i, stall_rate.at(j), prev_stall_rate.at(j),
+ best_stall_rate.at(j), interval_diff.at(j), minimum_interference.at(j));
 
  //best_stall_rate.at(j) = std::min(best_stall_rate.at(j), stall_rate.at(j));
  }
 
  // Assume App 0 is memory intensive and App 1 is compute intensive
- // First check if we are hurting the performance of the compute intensive app upto a certain percentage (5%)
- if (interval_diff.at(1) > minimum_interference.at(1)) {
- LINFO(
- "Exceeded the Minimal allowable interference for App 1, continue climbing!");
+ // First check if we are hurting the performance of the compute intensive app
+ upto a certain percentage (5%) if (interval_diff.at(1) >
+ minimum_interference.at(1)) { LINFO( "Exceeded the Minimal allowable
+ interference for App 1, continue climbing!");
  }
 
  else if (stall_rate.at(1) <= best_stall_rate.at(1) * 1.001

@@ -7,7 +7,6 @@
 	<buildSpec>
 		<buildCommand>
 			<name>org.eclipse.cdt.core.cBuilder</name>
-			<triggers>clean,full,incremental,</triggers>
 			<arguments>
 			</arguments>
 		</buildCommand>
@@ -17,4 +16,10 @@
 		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>org.eclipse.cdt.cmake.core.cmakeNature</nature>
 	</natures>
+	<variableList>
+		<variable>
+			<name>PATH</name>
+			<value>file:/C:/cygwin64/bin</value>
+		</variable>
+	</variableList>
 </projectDescription>

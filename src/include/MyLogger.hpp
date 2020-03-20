@@ -14,13 +14,14 @@ class MyLogger {
  public:
   int current_remote_ratio;
   int current_mba_level;
-  double HPA_target_stall_rate;
+  double HPA_target_slo;
+  double HPA_currency_latency;
   double HPA_stall_rate;
   double BEA_stall_rate;
   std::string action;
 
-  //constructor
-  MyLogger(int crr, int cml, double hpt, double hps, double bes,
+  // constructor
+  MyLogger(int crr, int cml, double hpt, double hcl, double hps, double bes,
            std::string act);
 };
 

@@ -14,7 +14,7 @@ find_package(Threads REQUIRED)
 find_package(OpenMP REQUIRED)
 
 # require boost program options
-find_package(Boost COMPONENTS program_options REQUIRED)
+find_package(Boost COMPONENTS program_options REQUIRED system)
 
 # get list of source files
 file(GLOB_RECURSE SOURCE_FILES relative ${CMAKE_CURRENT_SOURCE_DIR} "src/*.cpp" "src/*c")
