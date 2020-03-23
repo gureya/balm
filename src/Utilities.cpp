@@ -239,6 +239,10 @@ void page_migration_only() {
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
 
+    // update the BE best stall rate
+    best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
           "SLO has been violated (ABOVE operation region) target: %.0lf, "
@@ -689,6 +693,8 @@ int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
           "page optimization achieved (STOP page migration): target: %.0lf, "
           "current: %.0lf, delta: %.10lf",
           target_slo, current_latency, diff);
+      LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
+             stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
       current_remote_ratio = i;
       break;
     } else {
@@ -697,6 +703,8 @@ int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
           "%.0lf, "
           "current: %.0lf",
           target_slo, current_latency);
+      LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
+             stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
       current_remote_ratio = i;
     }
   }
