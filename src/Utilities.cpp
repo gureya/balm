@@ -273,18 +273,20 @@ void page_migration_only() {
       LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
              stall_rate.at(BE), best_stall_rate.at(BE), diff);
 
-      if (diff < -(delta_be) && diff > -(phase_change)) {
+      if ((diff < -(delta_be) && diff > -(phase_change)) ||
+          diff == -(std::numeric_limits<double>::infinity())) {
         current_remote_ratio = apply_pagemigration_lr(mem_segments);
-      } else if (diff > delta_be && diff < phase_change) {
+      } else if ((diff > delta_be && diff < phase_change) ||
+                 diff == -(std::numeric_limits<double>::infinity())) {
         current_remote_ratio = apply_pagemigration_rl(mem_segments);
-      } else if (diff > -(delta_be) && diff < delta_be) {
+      } else if ((diff > -(delta_be) && diff < delta_be) ||
+                 diff == -(std::numeric_limits<double>::infinity())) {
         LINFOF(
             "Nothing can be done (SLO within the operation region && No "
             "performance improvement for BE), delta_be: %.10lf",
             diff);
       } else {
         LINFOF("Phase change detected, diff: %.10lf", diff);
-
         // reset the best ratio value!
         for (i = 0; i < active_cpus; i++) {
           best_stall_rate.push_back(std::numeric_limits<double>::infinity());
