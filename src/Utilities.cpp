@@ -239,10 +239,6 @@ void page_migration_only() {
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
 
-    // update the BE best stall rate
-    best_stall_rate.at(BE) =
-        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
-
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
           "SLO has been violated (ABOVE operation region) target: %.0lf, "
@@ -289,6 +285,9 @@ void page_migration_only() {
             "Nothing can be done (SLO within the operation region && No "
             "performance improvement for BE), delta_be: %.10lf",
             diff);
+        // update the BE best stall rate
+        best_stall_rate.at(BE) =
+            std::min(best_stall_rate.at(BE), stall_rate.at(BE));
       } else {
         LINFOF("Phase change detected, diff: %.10lf", diff);
         // reset the best ratio value!
