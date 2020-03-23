@@ -288,7 +288,13 @@ void page_migration_only() {
       } else {
         LINFOF("Phase change detected, diff: %.10lf", diff);
         // reset the best ratio value!
-        best_stall_rate.at(BE) = stall_rate.at(BE);
+        best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
+        // fix this
+        if (diff > 0) {
+          current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+        } else {
+          current_remote_ratio = apply_pagemigration_lr(mem_segments);
+        }
       }
     }
 
