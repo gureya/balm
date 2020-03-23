@@ -266,16 +266,25 @@ void page_migration_only() {
       LINFOF("BE current: %.10lf, BE best: %.10lf", stall_rate.at(BE),
              best_stall_rate.at(BE));
 
-      if (stall_rate.at(BE) < best_stall_rate.at(BE) * (1 + delta_be)) {
+      /*
+       * After a new iteraion check if the current stall rate is within the
+       * optimal region
+       */
+      double diff = abs((stall_rate.at(BE) - best_stall_rate.at(BE)));
+      if (diff <= delta_be) {
+        LINFOF(
+            "Nothing can be done (SLO within the operation region && No "
+            "performance improvement for BE), delta_be: %.10lf",
+            diff);
+      } else if (stall_rate.at(BE) < best_stall_rate.at(BE) * (1 + delta_be)) {
         LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_lr(mem_segments);
       } else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 - delta_be)) {
         LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_rl(mem_segments);
       } else {
-        LINFO(
-            "Nothing can be done (SLO within the operation region && No "
-            "performance improvement for BE)");
+        LINFO("Something else happened!");
+        exit(EXIT_FAILURE);
       }
     }
 
