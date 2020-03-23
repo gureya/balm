@@ -263,21 +263,31 @@ void page_migration_only() {
        * move pages from remote to local node
        *
        */
-      LINFOF("BE current: %.10lf, BE best: %.10lf", stall_rate.at(BE),
-             best_stall_rate.at(BE));
 
       /*
        * After a new iteraion check if the current stall rate is within the
        * optimal region
        */
-      double diff = abs((stall_rate.at(BE) - best_stall_rate.at(BE)));
-      if (diff <= delta_be) {
+      double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+      LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf", stall_rate.at(BE),
+             best_stall_rate.at(BE), diff);
+
+      if (diff < -(delta_be)) {
+        current_remote_ratio = apply_pagemigration_lr(mem_segments);
+      } else if (diff > delta_be) {
+        current_remote_ratio = apply_pagemigration_rl(mem_segments);
+      } else if (diff > -(delta_be) && diff < delta_be) {
         LINFOF(
             "Nothing can be done (SLO within the operation region && No "
             "performance improvement for BE), delta_be: %.10lf",
             diff);
-      } else if (stall_rate.at(BE) < best_stall_rate.at(BE) * (1 + delta_be)) {
-        LINFO("------------------------------------------------------");
+      } else {
+        LINFO("Something else happened!");
+        exit(EXIT_FAILURE);
+      }
+
+      /*else if (stall_rate.at(BE) < best_stall_rate.at(BE) * (1 + delta_be))
+      { LINFO("------------------------------------------------------");
         current_remote_ratio = apply_pagemigration_lr(mem_segments);
       } else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 - delta_be)) {
         LINFO("------------------------------------------------------");
@@ -285,7 +295,7 @@ void page_migration_only() {
       } else {
         LINFO("Something else happened!");
         exit(EXIT_FAILURE);
-      }
+      }*/
     }
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
