@@ -288,23 +288,8 @@ void page_migration_only() {
       } else {
         LINFOF("Phase change detected, diff: %.10lf", diff);
         // reset the best ratio value!
-        // for (i = 0; i < active_cpus; i++) {
-        // best_stall_rate.push_back(std::numeric_limits<double>::infinity());
-        best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
-        //}
-        // exit(EXIT_FAILURE);
+        best_stall_rate.at(BE) = stall_rate.at(BE);
       }
-
-      /*else if (stall_rate.at(BE) < best_stall_rate.at(BE) * (1 + delta_be))
-      { LINFO("------------------------------------------------------");
-        current_remote_ratio = apply_pagemigration_lr(mem_segments);
-      } else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 - delta_be)) {
-        LINFO("------------------------------------------------------");
-        current_remote_ratio = apply_pagemigration_rl(mem_segments);
-      } else {
-        LINFO("Something else happened!");
-        exit(EXIT_FAILURE);
-      }*/
     }
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
@@ -696,13 +681,14 @@ int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
     if (diff > delta_be) {
       LINFOF(
           "page optimization achieved (STOP page migration): target: %.0lf, "
-          "current: %.0lf",
-          target_slo, current_latency);
+          "current: %.0lf, delta: %.10lf",
+          target_slo, current_latency, diff);
       current_remote_ratio = i;
       break;
     } else {
       LINFOF(
-          "page optimazation possible (CONTINUE page migration): target: %.0lf, "
+          "page optimazation possible (CONTINUE page migration): target: "
+          "%.0lf, "
           "current: %.0lf",
           target_slo, current_latency);
       current_remote_ratio = i;
