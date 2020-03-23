@@ -283,7 +283,7 @@ void page_migration_only() {
             "performance improvement for BE), delta_be: %.10lf",
             diff);
       } else {
-        LINFO("Phase change detected, diff: %.10lf", diff);
+        LINFOF("Phase change detected, diff: %.10lf", diff);
 
         // reset the best ratio value!
         for (i = 0; i < active_cpus; i++) {
