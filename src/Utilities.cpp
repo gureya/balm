@@ -274,7 +274,8 @@ void page_migration_only() {
       LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
              stall_rate.at(BE), best_stall_rate.at(BE), diff);
 
-      if (abs(diff) > phase_change) {
+      if (abs(diff) > phase_change &&
+          abs(diff) != std::numeric_limits<double>::infinity()) {
         optimization_complete = false;
         LINFOF("Phase change detected, diff: %.10lf", diff);
         // reset the best ratio value!
