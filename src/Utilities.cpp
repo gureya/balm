@@ -286,28 +286,29 @@ void page_migration_only() {
           current_remote_ratio = apply_pagemigration_lr(mem_segments);
         }
       } else {
-        if ((diff < -(delta_be) && !optimization_complete) ||
-            diff == -(std::numeric_limits<double>::infinity())) {
-          current_remote_ratio = apply_pagemigration_lr(mem_segments);
-        } else if ((diff > delta_be && !optimization_complete) ||
-                   diff == -(std::numeric_limits<double>::infinity())) {
-          current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
-        } else if ((diff > -(delta_be) && diff < delta_be &&
-                    !optimization_complete) ||
-                   diff == -(std::numeric_limits<double>::infinity())) {
-          LINFOF(
-              "Nothing can be done (SLO within the operation region && No "
-              "performance improvement for BE), delta_be: %.10lf",
-              diff);
-          // update the BE best stall rate
-          best_stall_rate.at(BE) =
-              std::min(best_stall_rate.at(BE), stall_rate.at(BE));
-        } else {
-          LINFO("Something else happened");
-          exit(EXIT_FAILURE);
+        if (!optimization_complete) {
+          if ((diff < -(delta_be)) ||
+              diff == -(std::numeric_limits<double>::infinity())) {
+            current_remote_ratio = apply_pagemigration_lr(mem_segments);
+          } else if ((diff > delta_be) ||
+                     diff == -(std::numeric_limits<double>::infinity())) {
+            current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+          } else if ((diff > -(delta_be) && diff < delta_be) ||
+                     diff == -(std::numeric_limits<double>::infinity())) {
+            LINFOF(
+                "Nothing can be done (SLO within the operation region && No "
+                "performance improvement for BE), delta_be: %.10lf",
+                diff);
+            // update the BE best stall rate
+            best_stall_rate.at(BE) =
+                std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+          } else {
+            LINFO("Something else happened");
+            exit(EXIT_FAILURE);
+          }
+          LINFO("OPTIMIZATION COMPLETED!");
+          optimization_complete = true;
         }
-        LINFO("OPTIMIZATION COMPLETED!");
-        optimization_complete = true;
       }
     }
 
