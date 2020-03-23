@@ -288,9 +288,10 @@ void page_migration_only() {
       } else {
         LINFOF("Phase change detected, diff: %.10lf", diff);
         // reset the best ratio value!
-        for (i = 0; i < active_cpus; i++) {
-          best_stall_rate.push_back(std::numeric_limits<double>::infinity());
-        }
+        // for (i = 0; i < active_cpus; i++) {
+        // best_stall_rate.push_back(std::numeric_limits<double>::infinity());
+        best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
+        //}
         // exit(EXIT_FAILURE);
       }
 
