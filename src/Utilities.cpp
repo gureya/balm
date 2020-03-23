@@ -782,14 +782,13 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
       LINFO("No performance improvement for the BE");
       LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
              stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
-      /*if (i != 0) {
+      if (i != 0) {
         LINFO("Going one step back before breaking!");
         place_all_pages(mem_segments, (i - ADAPTATION_STEP));
         current_remote_ratio = i - ADAPTATION_STEP;
       } else {
         current_remote_ratio = i;
-      }*/
-      current_remote_ratio = i;
+      }
       break;
     }
 
