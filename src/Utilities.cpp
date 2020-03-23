@@ -32,8 +32,9 @@ unsigned int _num_polls = 20;
 unsigned int _num_poll_outliers = 5;
 useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
-double delta_hp = 0.5;        // operational region of the controller (5%)
-double delta_be = 0.001;      // operational region of the controller (5%)
+double delta_hp = 0.5;        // operational region of the controller (5%) - HP
+double delta_be = 0.001;      // operational region of the controller (5%) - BE
+double phase_change = 0.1;    // phase change value
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -272,9 +273,9 @@ void page_migration_only() {
       LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
              stall_rate.at(BE), best_stall_rate.at(BE), diff);
 
-      if (diff < -(delta_be)) {
+      if (diff < -(delta_be) && diff > -(phase_change)) {
         current_remote_ratio = apply_pagemigration_lr(mem_segments);
-      } else if (diff > delta_be) {
+      } else if (diff > delta_be && diff < phase_change) {
         current_remote_ratio = apply_pagemigration_rl(mem_segments);
       } else if (diff > -(delta_be) && diff < delta_be) {
         LINFOF(
@@ -282,8 +283,13 @@ void page_migration_only() {
             "performance improvement for BE), delta_be: %.10lf",
             diff);
       } else {
-        LINFO("Something else happened!");
-        exit(EXIT_FAILURE);
+        LINFO("Phase change detected, diff: %.10lf", diff);
+
+        // reset the best ratio value!
+        for (i = 0; i < active_cpus; i++) {
+          best_stall_rate.push_back(std::numeric_limits<double>::infinity());
+        }
+        // exit(EXIT_FAILURE);
       }
 
       /*else if (stall_rate.at(BE) < best_stall_rate.at(BE) * (1 + delta_be))
