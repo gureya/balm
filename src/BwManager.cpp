@@ -68,9 +68,9 @@ void read_config(int argc, const char *argv[]) {
         "weights of BE application")(
         "BWMAN_CORES,d",
         value<std::string>(&monitored_cores_s)->default_value("0,10"),
-        "bwman monitored cores")("TARGET_SLO,t",
-                                 value<double>(&target_slo)->default_value(600),
-                                 "target slo")(
+        "bwman monitored cores")(
+        "TARGET_SLO,t", value<double>(&target_slo)->default_value(1000),
+        "target slo (99th percentile (usec))")(
         "TCP_SERVER,s", value<std::string>(&server)->default_value("127.0.0.1"),
         "tcp server for latency measurements")(
         "PORT,p", value<int>(&port)->default_value(1234), "tcp server port")(

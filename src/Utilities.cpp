@@ -32,7 +32,7 @@ unsigned int _num_polls = 20;
 unsigned int _num_poll_outliers = 5;
 useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
-double delta_hp = 0.05;       // operational region of the controller (5%)
+double delta_hp = 0.5;        // operational region of the controller (5%)
 double delta_be = 0.001;      // operational region of the controller (5%)
 ////////////////////////////////////////////
 
@@ -455,20 +455,11 @@ double get_target_stall_rate() {
  */
 double get_percentile_latency() {
   double service_time;
-  int min_mba = 10;
-  int max_mba = 100;
 
   LINFO("Getting the current percentile latency for the HP");
-  if (current_remote_ratio != 0) {
-    apply_mba(min_mba);
-  }
 
   // poll the latency of the applications
   service_time = connect_to_client();
-
-  if (current_remote_ratio != 0) {
-    apply_mba(max_mba);
-  }
 
   return service_time;
 }
@@ -504,7 +495,7 @@ double connect_to_client() {
   } catch (std::exception& e) {
     LINFO("Problem connecting to the client");
     std::cerr << e.what() << std::endl;
-    exit(EXIT_FAILURE);
+    // exit(EXIT_FAILURE);
   }
 
   return service_time;
