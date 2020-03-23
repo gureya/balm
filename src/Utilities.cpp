@@ -687,7 +687,7 @@ int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
        }*/
     double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
 
-    if (diff > delta_be) {
+    if (diff < delta_be) {
       LINFOF(
           "page optimization achieved (STOP page migration): target: %.0lf, "
           "current: %.0lf, delta: %.10lf",
