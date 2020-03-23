@@ -269,8 +269,8 @@ void page_migration_only() {
        * optimal region
        */
       double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
-      LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf", stall_rate.at(BE),
-             best_stall_rate.at(BE), diff);
+      LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
+             stall_rate.at(BE), best_stall_rate.at(BE), diff);
 
       if (diff < -(delta_be)) {
         current_remote_ratio = apply_pagemigration_lr(mem_segments);
@@ -593,7 +593,9 @@ int search_optimal_mba() {
 int apply_pagemigration_rl(std::vector<MySharedMemory> mem_segments) {
   int i;
   // apply the next ratio immediately
-  current_remote_ratio -= ADAPTATION_STEP;
+  if (current_remote_ratio > 0) {
+    current_remote_ratio -= ADAPTATION_STEP;
+  }
 
   for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
     LINFOF("Going to check a ratio of %d", i);
@@ -653,7 +655,9 @@ int apply_pagemigration_rl(std::vector<MySharedMemory> mem_segments) {
 int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
   int i;
   // apply the next ratio immediately
-  current_remote_ratio += ADAPTATION_STEP;
+  if (current_remote_ratio < 100) {
+    current_remote_ratio += ADAPTATION_STEP;
+  }
 
   for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
     LINFOF("Going to check a ratio of %d", i);
