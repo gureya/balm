@@ -35,6 +35,7 @@ double noise_allowed = 0.05;  // 5%
 double delta_hp = 0.5;        // operational region of the controller (5%) - HP
 double delta_be = 0.001;      // operational region of the controller (5%) - BE
 double phase_change = 0.1;    // phase change value
+bool optimization_complete = false;
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -273,22 +274,8 @@ void page_migration_only() {
       LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
              stall_rate.at(BE), best_stall_rate.at(BE), diff);
 
-      if ((diff < -(delta_be) && diff > -(phase_change)) ||
-          diff == -(std::numeric_limits<double>::infinity())) {
-        current_remote_ratio = apply_pagemigration_lr(mem_segments);
-      } else if ((diff > delta_be && diff < phase_change) ||
-                 diff == -(std::numeric_limits<double>::infinity())) {
-        current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
-      } else if ((diff > -(delta_be) && diff < delta_be) ||
-                 diff == -(std::numeric_limits<double>::infinity())) {
-        LINFOF(
-            "Nothing can be done (SLO within the operation region && No "
-            "performance improvement for BE), delta_be: %.10lf",
-            diff);
-        // update the BE best stall rate
-        best_stall_rate.at(BE) =
-            std::min(best_stall_rate.at(BE), stall_rate.at(BE));
-      } else {
+      if (abs(diff) > phase_change) {
+        optimization_complete = false;
         LINFOF("Phase change detected, diff: %.10lf", diff);
         // reset the best ratio value!
         best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
@@ -298,6 +285,29 @@ void page_migration_only() {
         } else {
           current_remote_ratio = apply_pagemigration_lr(mem_segments);
         }
+      } else {
+        if ((diff < -(delta_be) && !optimization_complete) ||
+            diff == -(std::numeric_limits<double>::infinity())) {
+          current_remote_ratio = apply_pagemigration_lr(mem_segments);
+        } else if ((diff > delta_be && !optimization_complete) ||
+                   diff == -(std::numeric_limits<double>::infinity())) {
+          current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+        } else if ((diff > -(delta_be) && diff < delta_be &&
+                    !optimization_complete) ||
+                   diff == -(std::numeric_limits<double>::infinity())) {
+          LINFOF(
+              "Nothing can be done (SLO within the operation region && No "
+              "performance improvement for BE), delta_be: %.10lf",
+              diff);
+          // update the BE best stall rate
+          best_stall_rate.at(BE) =
+              std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+        } else {
+          LINFO("Something else happened");
+          exit(EXIT_FAILURE);
+        }
+        LINFO("OPTIMIZATION COMPLETED!");
+        optimization_complete = true;
       }
     }
 
