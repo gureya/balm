@@ -278,7 +278,7 @@ void page_migration_only() {
         current_remote_ratio = apply_pagemigration_lr(mem_segments);
       } else if ((diff > delta_be && diff < phase_change) ||
                  diff == -(std::numeric_limits<double>::infinity())) {
-        current_remote_ratio = apply_pagemigration_rl(mem_segments);
+        current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
       } else if ((diff > -(delta_be) && diff < delta_be) ||
                  diff == -(std::numeric_limits<double>::infinity())) {
         LINFOF(
@@ -644,6 +644,65 @@ int apply_pagemigration_rl(std::vector<MySharedMemory> mem_segments) {
     } else {
       LINFOF(
           "SLO has NOT been achieved (CONTINUE page migration): target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
+      current_remote_ratio = i;
+    }
+  }
+
+  LINFOF("Current remote ratio: %d", current_remote_ratio);
+  return current_remote_ratio;
+}
+
+/*
+ * Page migrations from remote to local node (HP to BE nodes)
+ * considering only the optimization of BE
+ * TODO: Handle transient cases
+ */
+int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
+  int i;
+  // apply the next ratio immediately
+  if (current_remote_ratio > 0) {
+    current_remote_ratio -= ADAPTATION_STEP;
+  }
+
+  for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
+    LINFOF("Going to check a ratio of %d", i);
+    place_all_pages(mem_segments, i);
+
+    // Measure the stall_rate of the applications
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // Measure the current latency measurement
+    current_latency = get_percentile_latency();
+
+    // update the BE best stall rate
+    best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+
+    std::string my_action = "apply_ratio-" + std::to_string(i);
+    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
+
+    // sanity check
+    /*   if (current_latency == 0) {
+         LINFOF(
+             "NAN HP latency (STOP page migration): target: %.0lf, current:
+       %.0lf", target_slo, current_latency); current_remote_ratio = i; break;
+       }*/
+    double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+
+    if (diff > delta_be) {
+      LINFOF(
+          "page optimization achieved (STOP page migration): target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
+      current_remote_ratio = i;
+      break;
+    } else {
+      LINFOF(
+          "page optimazation possible (CONTINUE page migration): target: %.0lf, "
           "current: %.0lf",
           target_slo, current_latency);
       current_remote_ratio = i;
