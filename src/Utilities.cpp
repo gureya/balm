@@ -306,11 +306,12 @@ void page_migration_only() {
             LINFO("Something else happened");
             exit(EXIT_FAILURE);
           }
-          LINFO("OPTIMIZATION COMPLETED!");
-          optimization_complete = true;
         }
       }
     }
+
+    LINFO("OPTIMIZATION COMPLETED!");
+    optimization_complete = true;
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
     LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
