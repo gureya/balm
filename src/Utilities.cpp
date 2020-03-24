@@ -62,6 +62,7 @@ void signalHandler(int signum) {
   // terminate program
   destroy_shared_memory();
   stop_all_counters();
+  print_logs();
   run = 0;
   exit(signum);
 }
@@ -110,9 +111,6 @@ void abc_numa() {
     LINFO("======================================================");
     LINFOF("Starting a new iteration: %d", iter);
     LINFO("------------------------------------------------------");
-    // target_stall_rate = 0.5030852868;  // some fake value
-    // target_stall_rate = get_target_stall_rate(current_remote_ratio);
-    // LINFOF("Target SLO at this point: %.10lf", target_stall_rate);
 
     // Measure the stall_rate of the applications
     stall_rate =
@@ -120,13 +118,11 @@ void abc_numa() {
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
-    /*  if (!std::isnan(stall_rate.at(HP))
-     && stall_rate.at(HP) >= target_stall_rate * (1 - delta_hp)
-     && stall_rate.at(HP) <= target_stall_rate * (1 + delta_hp)) {
-     LINFO("Nothing can be done (SLO within the operation region)");
-     LINFOF("target: %.10lf, current: %.10lf", target_stall_rate,
-     stall_rate.at(HP));
-     }*/
+
+    // log the measurements for the debugging purposes!
+    std::string my_action = "iteration-" + std::to_string(iter);
+    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
@@ -229,7 +225,7 @@ void abc_numa() {
            optimal_mba);
     iter++;
 
-    print_logs();
+    // print_logs();
     sleep(sleeptime);
   }
 }
@@ -275,6 +271,11 @@ void page_migration_only() {
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
+
+    // log the measurements for the debugging purposes!
+    std::string my_action = "iteration-" + std::to_string(iter);
+    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
@@ -358,7 +359,7 @@ void page_migration_only() {
            optimal_mba);
     iter++;
 
-    print_logs();
+    // print_logs();
     sleep(sleeptime);
   }
 }
@@ -436,6 +437,11 @@ void mba_only() {
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
 
+    // log the measurements for the debugging purposes!
+    std::string my_action = "iteration-" + std::to_string(iter);
+    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
+
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
           "SLO has been violated (ABOVE operation region) target: %.0lf, "
@@ -462,7 +468,7 @@ void mba_only() {
           "current: %.0lf",
           target_slo, current_latency);
 
-      // firts release mba if any
+      // first release mba if any
       // Release MBA
       while (optimal_mba != 100) {
         LINFO("------------------------------------------------------");
@@ -525,7 +531,7 @@ void mba_only() {
            optimal_mba);
     iter++;
 
-    print_logs();
+    // print_logs();
     sleep(sleeptime);
   }
 }
