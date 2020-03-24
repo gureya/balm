@@ -281,7 +281,10 @@ void page_migration_only() {
         // reset the best ratio value!
         best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
         // fix this
-        if (diff < 0) {
+        // check the direction of the optimization process!
+        int direction = check_opt_direction(mem_segments);
+
+        if (direction == 1) {
           current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
         } else {
           current_remote_ratio = apply_pagemigration_lr(mem_segments);
@@ -322,6 +325,36 @@ void page_migration_only() {
     print_logs();
     sleep(sleeptime);
   }
+}
+
+int check_opt_direction(std::vector<MySharedMemory> mem_segments) {
+  // apply the next ratio immediately
+  double tried_ratio = current_remote_ratio;
+
+  // 0 = lr, 1 = rl
+  int direction = 0;
+  double tried_diff;
+  std::vector<double> rl_str(active_cpus);
+  if (tried_ratio > 0) {
+    // first try from remote to local
+    tried_ratio -= ADAPTATION_STEP;
+    place_all_pages(mem_segments, tried_ratio);
+    rl_str =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // measure the difference
+    tried_diff = stall_rate.at(BE) - rl_str.at(BE);
+    if (tried_diff > 0) {
+      direction = 1;  // remote to local migration
+    } else {
+      // local to remote migration
+      place_all_pages(mem_segments, (tried_ratio + ADAPTATION_STEP));
+    }
+  }
+  LINFOF("Directio: %d, current(BE): %.10lf, tried(BE): %.10lf, diff: %.10lf",
+         direction, stall_rate.at(BE), rl_str.at(BE), tried_diff);
+
+  return direction;
 }
 
 /*
@@ -707,7 +740,14 @@ int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
           target_slo, current_latency, diff);
       LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
              stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
-      current_remote_ratio = i;
+      if (i != 0) {
+        LINFO("Going one step back before breaking!");
+        place_all_pages(mem_segments, (i + ADAPTATION_STEP));
+        current_remote_ratio = i + ADAPTATION_STEP;
+      } else {
+        current_remote_ratio = i;
+      }
+      // current_remote_ratio = i;
       break;
     } else {
       LINFOF(

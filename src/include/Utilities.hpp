@@ -41,6 +41,7 @@ int mba_binary_search(int current_mba, double progress);
 int apply_pagemigration_rl(std::vector<MySharedMemory> mem_segments);
 int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments);
 int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments);
+int check_opt_direction(std::vector<MySharedMemory> mem_segments);
 int release_mba();
 
 void signalHandler(int signum);
