@@ -448,8 +448,8 @@ void mba_only() {
     current_latency = get_percentile_latency();
 
     // update the BE best stall rate
-    best_stall_rate.at(BE) =
-        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+    /*best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));*/
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
