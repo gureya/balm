@@ -120,10 +120,8 @@ void abc_numa() {
     current_latency = get_percentile_latency();
 
     // update the BE best stall rate
-    /* if (iter != 0) {
-       best_stall_rate.at(BE) =
-           std::min(best_stall_rate.at(BE), stall_rate.at(BE));
-     }*/
+    best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
@@ -206,7 +204,7 @@ void abc_numa() {
           } else if ((diff > delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
             current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
-          } else if ((diff > -(delta_be) && diff < delta_be) ||
+          } else if ((diff != 0 && diff > -(delta_be) && diff < delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
             LINFOF(
                 "Nothing can be done (SLO within the operation region && No "
