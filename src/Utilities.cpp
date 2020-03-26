@@ -119,6 +119,10 @@ void abc_numa() {
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
 
+    // update the BE best stall rate
+    best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
     my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
@@ -271,6 +275,10 @@ void page_migration_only() {
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
+
+    // update the BE best stall rate
+    best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
@@ -436,6 +444,10 @@ void mba_only() {
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
+
+    // update the BE best stall rate
+    best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
@@ -900,8 +912,9 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
     }
 
     // then check if there is any performance improvement for BE
-    else if (stall_rate.at(BE) > best_stall_rate.at(BE) * (1 + delta_be) ||
-             std::isnan(stall_rate.at(BE))) {
+    double my_diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+
+    else if (my_diff > delta_be || std::isnan(stall_rate.at(BE))) {
       LINFO("No performance improvement for the BE");
       LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
              stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
