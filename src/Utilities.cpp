@@ -891,6 +891,9 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
     best_stall_rate.at(BE) =
         std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
+    // current diff
+    double my_diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+
     std::string my_action = "apply_ratio-" + std::to_string(i);
     my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
               stall_rate.at(HP), stall_rate.at(BE), my_action);
@@ -912,8 +915,6 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
     }
 
     // then check if there is any performance improvement for BE
-    double my_diff = stall_rate.at(BE) - best_stall_rate.at(BE);
-
     else if (my_diff > delta_be || std::isnan(stall_rate.at(BE))) {
       LINFO("No performance improvement for the BE");
       LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
