@@ -199,7 +199,7 @@ void abc_numa() {
       } else {
         if (!optimization_complete) {
           if ((diff < -(delta_be)) ||
-              diff == -(std::numeric_limits<double>::infinity())) {
+              diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
             current_remote_ratio = apply_pagemigration_lr(mem_segments);
           } else if ((diff > delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
