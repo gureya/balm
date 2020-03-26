@@ -120,8 +120,10 @@ void abc_numa() {
     current_latency = get_percentile_latency();
 
     // update the BE best stall rate
-    best_stall_rate.at(BE) =
-        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+    if (iter != 0) {
+      best_stall_rate.at(BE) =
+          std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+    }
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
@@ -397,7 +399,7 @@ int check_opt_direction(std::vector<MySharedMemory> mem_segments) {
       place_all_pages(mem_segments, (tried_ratio + ADAPTATION_STEP));
     }
   }
-  LINFOF("Directio: %d, current(BE): %.10lf, tried(BE): %.10lf, diff: %.10lf",
+  LINFOF("Direction: %d, current(BE): %.10lf, tried(BE): %.10lf, diff: %.10lf",
          direction, stall_rate.at(BE), rl_str.at(BE), tried_diff);
 
   return direction;
@@ -917,8 +919,11 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
     // then check if there is any performance improvement for BE
     else if (my_diff > delta_be || std::isnan(stall_rate.at(BE))) {
       LINFO("No performance improvement for the BE");
-      LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
-             stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
+      LINFOF(
+          "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, diff: "
+          "%.10lf",
+          stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
+          my_diff);
       if (i != 0) {
         LINFO("Going one step back before breaking!");
         place_all_pages(mem_segments, (i - ADAPTATION_STEP));
@@ -936,9 +941,9 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
           "climbing");
       LINFOF(
           "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, "
-          "latency(HP): %.0lf",
+          "latency(HP): %.0lf, diff: %.10lf",
           stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
-          current_latency);
+          current_latency, my_diff);
       current_remote_ratio = i;
     }
   }
