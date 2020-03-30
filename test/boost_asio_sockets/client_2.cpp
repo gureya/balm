@@ -33,12 +33,13 @@ int main(int argc, char* argv[]) {
     tcp::socket socket(io_service);
 
     // connection
+    for (;;) {
     std::cout << "[Client] Connecting to server..." << std::endl;
     socket.connect(
         tcp::endpoint(boost::asio::ip::address::from_string(host), port),
         error);
 
-    for (;;) {
+    //for (;;) {
       boost::array<char, 128> buf;
       boost::system::error_code error;
 
@@ -50,6 +51,7 @@ int main(int argc, char* argv[]) {
         throw boost::system::system_error(error);  // Some other error.
 
       std::cout.write(buf.data(), len);
+      sleep(5);
     }
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
