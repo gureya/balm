@@ -653,10 +653,10 @@ double connect_to_client() {
         throw boost::system::system_error(error);  // Some other error.
 
       std::string my_string(buf.begin(), len);
-      //std::copy(buf.begin(), buf.begin()+len, std::back_inserter(my_string));
-      //std::cout.write(buf.data(), len);
-      //cout << std::endl;
-      //cout << my_string << std::endl;
+      // std::copy(buf.begin(), buf.begin()+len, std::back_inserter(my_string));
+      // std::cout.write(buf.data(), len);
+      // cout << std::endl;
+      // cout << my_string << std::endl;
       service_time = boost::lexical_cast<double>(my_string);
     }
   } catch (std::exception& e) {

@@ -14,47 +14,54 @@
 
 using boost::asio::ip::tcp;
 
-int main(int argc, char* argv[]) {
+int client(std::string host, int port) {
   try {
-    std::string host;
-    int port;
-
-    if (argc != 3) {
-      std::cerr << "Usage: client <host> <port>" << std::endl;
-      return 1;
-    }
-
-    host = argv[1];
-    port = std::stoi(argv[2]);
-
     // socket creation
     boost::system::error_code error;
     boost::asio::io_service io_service;
     tcp::socket socket(io_service);
 
     // connection
-    for (;;) {
-    std::cout << "[Client] Connecting to server..." << std::endl;
+    std::cout << "[Client] Connecting to server...: ";
     socket.connect(
         tcp::endpoint(boost::asio::ip::address::from_string(host), port),
         error);
 
-    //for (;;) {
-      boost::array<char, 128> buf;
-      boost::system::error_code error;
+    boost::array<char, 128> buf;
 
-      size_t len = socket.read_some(boost::asio::buffer(buf), error);
+    size_t len = socket.read_some(boost::asio::buffer(buf), error);
 
-      if (error == boost::asio::error::eof)
-        break;  // Connection closed cleanly by peer.
-      else if (error)
-        throw boost::system::system_error(error);  // Some other error.
+    if (error == boost::asio::error::eof) {
+      std::cout << "Connection closed cleanly by peer" << std::endl;
+      exit(EXIT_FAILURE);  // Connection closed cleanly by peer.
+    } else if (error)
+      throw boost::system::system_error(error);  // Some other error.
 
-      std::cout.write(buf.data(), len);
-      sleep(5);
-    }
+    std::cout.write(buf.data(), len);
+    std::cout << std::endl;
+
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
+  }
+
+  // return 0;
+}
+
+int main(int argc, char* argv[]) {
+  std::string host;
+  int port;
+
+  if (argc != 3) {
+    std::cerr << "Usage: client <host> <port>" << std::endl;
+    return 1;
+  }
+
+  host = argv[1];
+  port = std::stoi(argv[2]);
+
+  while (true) {
+    client(host, port);
+    sleep(5);
   }
 
   return 0;
