@@ -926,14 +926,22 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
           "%.10lf",
           stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
           my_diff);
-      if (i != 0) {
-        LINFO("Going one step back before breaking!");
-        place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-        current_remote_ratio = i - ADAPTATION_STEP;
-      } else {
-        current_remote_ratio = i;
+      // just make sure that its not something transient...!
+      LINFO("Hmm... Is this the best we can do?");
+      std::vector<double> stall_rate_transient = get_average_stall_rate(
+          _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+      if ((stall_rate_transient.at(BE) - best_stall_rate.at(BE)) > delta_be ||
+          std::isnan(stall_rate_transient.at(BE))) {
+        LINFO("I guess so!");
+        if (i != 0) {
+          LINFO("Going one step back before breaking!");
+          place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+          current_remote_ratio = i - ADAPTATION_STEP;
+        } else {
+          current_remote_ratio = i;
+        }
+        break;
       }
-      break;
     }
 
     else if (my_diff != 0 && my_diff > -(delta_be) && my_diff < delta_be) {
