@@ -928,8 +928,8 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
           my_diff);
       // just make sure that its not something transient...!
       LINFO("Hmm... Is this the best we can do?");
-      std::vector<double> stall_rate_transient = get_average_stall_rate(
-          _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+      std::vector<double> stall_rate_transient =
+          get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
       if ((stall_rate_transient.at(BE) - best_stall_rate.at(BE)) > delta_be ||
           std::isnan(stall_rate_transient.at(BE))) {
         LINFO("I guess so!");
