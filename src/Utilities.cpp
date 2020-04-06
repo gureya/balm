@@ -482,7 +482,7 @@ void mba_only() {
 
       // first release mba if any
       // Release MBA
-      while (optimal_mba != 100) {
+      while (optimal_mba != 100 && !optimization_complete) {
         LINFO("------------------------------------------------------");
         optimal_mba = release_mba();
       }
