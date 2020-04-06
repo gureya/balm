@@ -949,7 +949,10 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
     }
 
     else if (my_diff != 0 && my_diff > -(delta_be) && my_diff < delta_be) {
-      LINFO("No performance improvement for the BE, in the operation region!");
+      LINFOF(
+          "No performance improvement for the BE, in the operation region!, "
+          "target: %.0lf, current(HP): %.0lf",
+          target_slo, current_latency);
       LINFOF(
           " current(HP): % .10lf, best(BE): % .10lf, current(BE): % .10lf, "
           "diff: %.10lf",
