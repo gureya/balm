@@ -920,7 +920,10 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
 
     // then check if there is any performance improvement for BE
     else if (my_diff > delta_be || std::isnan(stall_rate.at(BE))) {
-      LINFO("No performance improvement for the BE");
+      LINFOF(
+          "No performance improvement for the BE, target: %.0lf, current(HP): "
+          "%.0lf",
+          target_slo, current_latency);
       LINFOF(
           "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, diff: "
           "%.10lf",
@@ -932,7 +935,8 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
           _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
       if ((stall_rate_transient.at(BE) - best_stall_rate.at(BE)) > delta_be ||
           std::isnan(stall_rate_transient.at(BE))) {
-        LINFO("I guess so!");
+        LINFOF("I guess so!, transient(BE): %.10lf",
+               stall_rate_transient.at(BE));
         if (i != 0) {
           LINFO("Going one step back before breaking!");
           place_all_pages(mem_segments, (i - ADAPTATION_STEP));
