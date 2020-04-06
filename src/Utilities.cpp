@@ -567,13 +567,18 @@ void linux_default() {
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
 
+    LINFOF(
+        "target(HP): %.0lf, current(HP): %.0lf, BE current: %.10lf, BE best: "
+        "%.10lf, diff: %.10lf",
+        target_slo, current_latency, stall_rate.at(BE), best_stall_rate.at(BE));
+
     std::string my_action = "iter-" + std::to_string(iter);
     my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
               stall_rate.at(HP), stall_rate.at(BE), my_action);
 
     iter++;
 
-    print_logs();
+    // print_logs();
     sleep(sleeptime);
   }
 }
