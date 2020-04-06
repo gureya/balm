@@ -568,9 +568,9 @@ void linux_default() {
     current_latency = get_percentile_latency();
 
     LINFOF(
-        "target(HP): %.0lf, current(HP): %.0lf, BE current: %.10lf, BE best: "
-        "%.10lf, diff: %.10lf",
-        target_slo, current_latency, stall_rate.at(BE), best_stall_rate.at(BE));
+        "target(HP): %.0lf, current(HP): %.0lf, BE current: %.10lf, HP "
+        "current: %.10lf",
+        target_slo, current_latency, stall_rate.at(BE), stall_rate.at(HP));
 
     std::string my_action = "iter-" + std::to_string(iter);
     my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
