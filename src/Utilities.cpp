@@ -770,13 +770,13 @@ void disabled_controller() {
       if (direction == 1) {
         current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
       } else {
-        current_remote_ratio = apply_pagemigration_lr(mem_segments);
+        current_remote_ratio = apply_pagemigration_lr_dc(mem_segments);
       }
     } else {
       if (!optimization_complete) {
         if ((diff < -(delta_be)) ||
             diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-          current_remote_ratio = apply_pagemigration_lr(mem_segments);
+          current_remote_ratio = apply_pagemigration_lr_dc(mem_segments);
         } else if ((diff > delta_be) ||
                    diff == -(std::numeric_limits<double>::infinity())) {
           current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
@@ -1133,7 +1133,7 @@ int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
 /*
  * Page migrations from local to remote node (BE to HP nodes)
  * to optimize the BW of BE
- * TODO: Handle transient cases
+ * TODO: Handle transient cases - fixed
  *
  */
 
@@ -1186,6 +1186,114 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
 
     // then check if there is any performance improvement for BE
     else if (my_diff > delta_be || std::isnan(stall_rate.at(BE))) {
+      LINFOF(
+          "No performance improvement for the BE, target: %.0lf, current(HP): "
+          "%.0lf",
+          target_slo, current_latency);
+      LINFOF(
+          "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, diff: "
+          "%.10lf",
+          stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
+          my_diff);
+      // just make sure that its not something transient...!
+      LINFO("Hmm... Is this the best we can do?");
+      std::vector<double> stall_rate_transient = get_average_stall_rate(
+          _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+      if ((stall_rate_transient.at(BE) - best_stall_rate.at(BE)) > delta_be ||
+          std::isnan(stall_rate_transient.at(BE))) {
+        LINFOF("I guess so!, transient(BE): %.10lf",
+               stall_rate_transient.at(BE));
+        if (i != 0) {
+          LINFO("Going one step back before breaking!");
+          place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+          current_remote_ratio = i - ADAPTATION_STEP;
+        } else {
+          current_remote_ratio = i;
+        }
+        break;
+      }
+    }
+
+    else if (my_diff != 0 && my_diff > -(delta_be) && my_diff < delta_be) {
+      LINFOF(
+          "No performance improvement for the BE, in the operation region!, "
+          "target: %.0lf, current(HP): %.0lf",
+          target_slo, current_latency);
+      LINFOF(
+          " current(HP): % .10lf, best(BE): % .10lf, current(BE): % .10lf, "
+          "diff: %.10lf",
+          stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
+          my_diff);
+      if (i != 0) {
+        LINFO("Going one step back before breaking!");
+        place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+        current_remote_ratio = i - ADAPTATION_STEP;
+      } else {
+        current_remote_ratio = i;
+      }
+      break;
+    }
+
+    // if performance improvement and no SLO violation continue climbing
+    else {
+      LINFO(
+          "Performance improvement for BE without SLO Violation, continue "
+          "climbing");
+      LINFOF(
+          "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, "
+          "latency(HP): %.0lf, diff: %.10lf",
+          stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
+          current_latency, my_diff);
+      current_remote_ratio = i;
+    }
+  }
+
+  LINFOF("Current remote ratio: %d", current_remote_ratio);
+  return current_remote_ratio;
+}
+
+/*
+ * Page migrations from local to remote node (BE to HP nodes)
+ * to optimize the BW of BE
+ * this function does not care about slo violations!!
+ * TODO: Handle transient cases - fixed
+ *
+ */
+
+int apply_pagemigration_lr_dc(std::vector<MySharedMemory> mem_segments) {
+  int i;
+  // apply the next ratio immediately
+  if (current_remote_ratio < 100) {
+    current_remote_ratio += ADAPTATION_STEP;
+  }
+
+  for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
+    LINFOF("Going to check a ratio of %d", i);
+    if (i != 0) {
+      place_all_pages(mem_segments, i);
+    }
+
+    // Measure the stall_rate of the applications
+    stall_rate =
+        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // Measure the current latency measurement
+    current_latency = get_percentile_latency();
+
+    // update the BE best stall rate
+    best_stall_rate.at(BE) =
+        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+
+    // current diff
+    double my_diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+
+    std::string my_action = "apply_ratio-" + std::to_string(i);
+    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
+              stall_rate.at(HP), stall_rate.at(BE), my_action);
+
+    /// Do not care about slo violation just optimize page migration!
+    // Check if there is any performance improvement for BE
+    if (my_diff > delta_be || std::isnan(stall_rate.at(BE))) {
       LINFOF(
           "No performance improvement for the BE, target: %.0lf, current(HP): "
           "%.0lf",

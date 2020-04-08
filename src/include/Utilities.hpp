@@ -44,6 +44,7 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments);
 int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments);
 int check_opt_direction(std::vector<MySharedMemory> mem_segments);
 int release_mba();
+int apply_pagemigration_lr_dc(std::vector<MySharedMemory> mem_segments);
 
 void signalHandler(int signum);
 
