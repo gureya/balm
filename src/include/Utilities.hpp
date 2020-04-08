@@ -32,7 +32,8 @@ void abc_numa(void);  // the overall solution i.e., page migration + mba
 void page_migration_only(void);
 void mba_only(void);
 void linux_default(void);
-// void periodic_monitor(void);
+void mba_10(void);
+void disabled_controller(void);
 
 // Important Functionalities
 void apply_mba(int mba_value);
