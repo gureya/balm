@@ -32,8 +32,6 @@ unsigned int _num_polls = 20;
 unsigned int _num_poll_outliers = 5;
 useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
-double delta_hp = 0.5;        // operational region of the controller (5%) - HP
-double delta_be = 0.001;      // operational region of the controller (5%) - BE
 double phase_change = 0.1;    // phase change value
 bool optimization_complete = false;
 ////////////////////////////////////////////
@@ -73,16 +71,15 @@ unsigned long time_diff(struct timeval* start, struct timeval* stop) {
   return 1000000 * sec_res + usec_res;
 }
 
-/*
- * Split the execution time of the controller in monitoring periods of length T,
- * during which we monitor the stall rate of HP and BE
- * abc_numa = page migration + mba
- *
- */
-void abc_numa() {
+// Get the memory segments of the BE
+std::vector<MySharedMemory> mem_segments;
+
+// just a counter to keep track of counting
+int iter = 0;
+
+void get_memory_segments() {
   // First read the memory segments to be moved
-  // Move this to a different function i.e., memory initializer
-  std::vector<MySharedMemory> mem_segments = get_shared_memory();
+  mem_segments = get_shared_memory();
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
 
@@ -94,9 +91,7 @@ void abc_numa() {
     exit(EXIT_FAILURE);
   }
 
-  // double target_stall_rate;
-  int iter = 0;
-
+  // Initialize the best and previuos stall rates
   int i;
   for (i = 0; i < active_cpus; i++) {
     prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
@@ -104,7 +99,15 @@ void abc_numa() {
   }
   LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
          best_stall_rate.at(BE), prev_stall_rate.at(BE));
+}
 
+/*
+ * Split the execution time of the controller in monitoring periods of length T,
+ * during which we monitor the stall rate of HP and BE
+ * abc_numa = page migration + mba
+ *
+ */
+void abc_numa() {
   while (run) {
     // TODO: this can be inside the loop or outside the loop!
     // TODO: Define the operation region of the controller
@@ -125,8 +128,9 @@ void abc_numa() {
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
@@ -143,7 +147,7 @@ void abc_numa() {
         while (optimal_mba != 100) {
           // apply page migration
           LINFO("------------------------------------------------------");
-          current_remote_ratio = apply_pagemigration_rl(mem_segments);
+          current_remote_ratio = apply_pagemigration_rl();
           // release MBA
           LINFO("------------------------------------------------------");
           optimal_mba = release_mba();
@@ -189,21 +193,21 @@ void abc_numa() {
         best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
         // fix this
         // check the direction of the optimization process!
-        int direction = check_opt_direction(mem_segments);
+        int direction = check_opt_direction();
 
         if (direction == 1) {
-          current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+          current_remote_ratio = apply_pagemigration_rl_be();
         } else {
-          current_remote_ratio = apply_pagemigration_lr(mem_segments);
+          current_remote_ratio = apply_pagemigration_lr();
         }
       } else {
         if (!optimization_complete) {
           if ((diff < -(delta_be)) ||
               diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-            current_remote_ratio = apply_pagemigration_lr(mem_segments);
+            current_remote_ratio = apply_pagemigration_lr();
           } else if ((diff > delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
-            current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+            current_remote_ratio = apply_pagemigration_rl_be();
           } else if ((diff != 0 && diff > -(delta_be) && diff < delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
             LINFOF(
@@ -239,29 +243,6 @@ void abc_numa() {
  *
  */
 void page_migration_only() {
-  // First read the memory segments to be moved
-  std::vector<MySharedMemory> mem_segments = get_shared_memory();
-
-  LINFOF("Number of Segments: %lu", mem_segments.size());
-
-  // some sanity check
-  if (mem_segments.size() == 0) {
-    LINFO("No segments found! Exiting");
-    destroy_shared_memory();
-    stop_all_counters();
-    exit(EXIT_FAILURE);
-  }
-
-  int iter = 0;
-
-  int i;
-  for (i = 0; i < active_cpus; i++) {
-    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
-    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
-  }
-  LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
-         best_stall_rate.at(BE), prev_stall_rate.at(BE));
-
   while (run) {
     // TODO: this can be inside the loop or outside the loop!
     // TODO: Define the operation region of the controller
@@ -282,8 +263,9 @@ void page_migration_only() {
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
@@ -293,7 +275,7 @@ void page_migration_only() {
 
       // apply page migration
       LINFO("------------------------------------------------------");
-      current_remote_ratio = apply_pagemigration_rl(mem_segments);
+      current_remote_ratio = apply_pagemigration_rl();
     }
 
     else {
@@ -327,21 +309,21 @@ void page_migration_only() {
         best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
         // fix this
         // check the direction of the optimization process!
-        int direction = check_opt_direction(mem_segments);
+        int direction = check_opt_direction();
 
         if (direction == 1) {
-          current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+          current_remote_ratio = apply_pagemigration_rl_be();
         } else {
-          current_remote_ratio = apply_pagemigration_lr(mem_segments);
+          current_remote_ratio = apply_pagemigration_lr();
         }
       } else {
         if (!optimization_complete) {
           if ((diff < -(delta_be)) ||
               diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-            current_remote_ratio = apply_pagemigration_lr(mem_segments);
+            current_remote_ratio = apply_pagemigration_lr();
           } else if ((diff > delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
-            current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+            current_remote_ratio = apply_pagemigration_rl_be();
           } else if ((diff > -(delta_be) && diff < delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
             LINFOF(
@@ -372,7 +354,7 @@ void page_migration_only() {
   }
 }
 
-int check_opt_direction(std::vector<MySharedMemory> mem_segments) {
+int check_opt_direction() {
   // apply the next ratio immediately
   double tried_ratio = current_remote_ratio;
 
@@ -408,29 +390,6 @@ int check_opt_direction(std::vector<MySharedMemory> mem_segments) {
  *
  */
 void mba_only() {
-  // First read the memory segments to be moved
-  std::vector<MySharedMemory> mem_segments = get_shared_memory();
-
-  LINFOF("Number of Segments: %lu", mem_segments.size());
-
-  // some sanity check
-  if (mem_segments.size() == 0) {
-    LINFO("No segments found! Exiting");
-    destroy_shared_memory();
-    stop_all_counters();
-    exit(EXIT_FAILURE);
-  }
-
-  int iter = 0;
-
-  int i;
-  for (i = 0; i < active_cpus; i++) {
-    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
-    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
-  }
-  LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
-         best_stall_rate.at(BE), prev_stall_rate.at(BE));
-
   while (run) {
     // TODO: this can be inside the loop or outside the loop!
     // TODO: Define the operation region of the controller
@@ -451,8 +410,9 @@ void mba_only() {
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
@@ -503,21 +463,21 @@ void mba_only() {
         best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
         // fix this
         // check the direction of the optimization process!
-        int direction = check_opt_direction(mem_segments);
+        int direction = check_opt_direction();
 
         if (direction == 1) {
-          current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+          current_remote_ratio = apply_pagemigration_rl_be();
         } else {
-          current_remote_ratio = apply_pagemigration_lr(mem_segments);
+          current_remote_ratio = apply_pagemigration_lr();
         }
       } else {
         if (!optimization_complete) {
           if ((diff < -(delta_be)) ||
               diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-            current_remote_ratio = apply_pagemigration_lr(mem_segments);
+            current_remote_ratio = apply_pagemigration_lr();
           } else if ((diff > delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
-            current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+            current_remote_ratio = apply_pagemigration_rl_be();
           } else if ((diff > -(delta_be) && diff < delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
             LINFOF(
@@ -553,29 +513,6 @@ void mba_only() {
  * minimum MBA = 10
  */
 void mba_10() {
-  // First read the memory segments to be moved
-  std::vector<MySharedMemory> mem_segments = get_shared_memory();
-
-  LINFOF("Number of Segments: %lu", mem_segments.size());
-
-  // some sanity check
-  if (mem_segments.size() == 0) {
-    LINFO("No segments found! Exiting");
-    destroy_shared_memory();
-    stop_all_counters();
-    exit(EXIT_FAILURE);
-  }
-
-  int iter = 0;
-
-  int i;
-  for (i = 0; i < active_cpus; i++) {
-    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
-    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
-  }
-  LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
-         best_stall_rate.at(BE), prev_stall_rate.at(BE));
-
   while (run) {
     // TODO: this can be inside the loop or outside the loop!
     // TODO: Define the operation region of the controller
@@ -596,8 +533,9 @@ void mba_10() {
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
@@ -648,21 +586,21 @@ void mba_10() {
         best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
         // fix this
         // check the direction of the optimization process!
-        int direction = check_opt_direction(mem_segments);
+        int direction = check_opt_direction();
 
         if (direction == 1) {
-          current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+          current_remote_ratio = apply_pagemigration_rl_be();
         } else {
-          current_remote_ratio = apply_pagemigration_lr(mem_segments);
+          current_remote_ratio = apply_pagemigration_lr();
         }
       } else {
         if (!optimization_complete) {
           if ((diff < -(delta_be)) ||
               diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-            current_remote_ratio = apply_pagemigration_lr(mem_segments);
+            current_remote_ratio = apply_pagemigration_lr();
           } else if ((diff > delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
-            current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+            current_remote_ratio = apply_pagemigration_rl_be();
           } else if ((diff > -(delta_be) && diff < delta_be) ||
                      diff == -(std::numeric_limits<double>::infinity())) {
             LINFOF(
@@ -698,29 +636,6 @@ void mba_10() {
  *
  */
 void disabled_controller() {
-  // First read the memory segments to be moved
-  std::vector<MySharedMemory> mem_segments = get_shared_memory();
-
-  LINFOF("Number of Segments: %lu", mem_segments.size());
-
-  // some sanity check
-  if (mem_segments.size() == 0) {
-    LINFO("No segments found! Exiting");
-    destroy_shared_memory();
-    stop_all_counters();
-    exit(EXIT_FAILURE);
-  }
-
-  int iter = 0;
-
-  int i;
-  for (i = 0; i < active_cpus; i++) {
-    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
-    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
-  }
-  LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
-         best_stall_rate.at(BE), prev_stall_rate.at(BE));
-
   while (run) {
     // TODO: this can be inside the loop or outside the loop!
     // TODO: Define the operation region of the controller
@@ -741,8 +656,9 @@ void disabled_controller() {
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     LINFOF(
         "Optimizing page migration without considering SLO target: %.0lf, "
@@ -765,21 +681,21 @@ void disabled_controller() {
       best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
       // fix this
       // check the direction of the optimization process!
-      int direction = check_opt_direction(mem_segments);
+      int direction = check_opt_direction();
 
       if (direction == 1) {
-        current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+        current_remote_ratio = apply_pagemigration_rl_be();
       } else {
-        current_remote_ratio = apply_pagemigration_lr_dc(mem_segments);
+        current_remote_ratio = apply_pagemigration_lr_dc();
       }
     } else {
       if (!optimization_complete) {
         if ((diff < -(delta_be)) ||
             diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-          current_remote_ratio = apply_pagemigration_lr_dc(mem_segments);
+          current_remote_ratio = apply_pagemigration_lr_dc();
         } else if ((diff > delta_be) ||
                    diff == -(std::numeric_limits<double>::infinity())) {
-          current_remote_ratio = apply_pagemigration_rl_be(mem_segments);
+          current_remote_ratio = apply_pagemigration_rl_be();
         } else if ((diff > -(delta_be) && diff < delta_be) ||
                    diff == -(std::numeric_limits<double>::infinity())) {
           LINFOF(
@@ -814,8 +730,6 @@ void disabled_controller() {
  *
  */
 void linux_default() {
-  int iter = 0;
-
   while (run) {
     LINFO("======================================================");
     LINFOF("Starting a new iteration: %d", iter);
@@ -834,8 +748,9 @@ void linux_default() {
         target_slo, current_latency, stall_rate.at(BE), stall_rate.at(HP));
 
     std::string my_action = "iter-" + std::to_string(iter);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     iter++;
 
@@ -966,8 +881,8 @@ int search_optimal_mba() {
     current_latency = get_percentile_latency();
 
     std::string my_action = "apply_mba-" + std::to_string(i);
-    my_logger(current_remote_ratio, i, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, i, target_slo,
+              current_latency, stall_rate.at(HP), stall_rate.at(BE), my_action);
 
     // sanity checker
     if (current_latency == 0) {
@@ -1004,7 +919,7 @@ int search_optimal_mba() {
  * Page migrations from remote to local node (HP to BE nodes)
  * TODO: Handle transient cases
  */
-int apply_pagemigration_rl(std::vector<MySharedMemory> mem_segments) {
+int apply_pagemigration_rl() {
   int i;
   // apply the next ratio immediately
   if (current_remote_ratio > 0) {
@@ -1027,8 +942,9 @@ int apply_pagemigration_rl(std::vector<MySharedMemory> mem_segments) {
         std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     // sanity check
     if (current_latency == 0) {
@@ -1064,7 +980,7 @@ int apply_pagemigration_rl(std::vector<MySharedMemory> mem_segments) {
  * considering only the optimization of BE
  * TODO: Handle transient cases
  */
-int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
+int apply_pagemigration_rl_be() {
   int i;
   // apply the next ratio immediately
   if (current_remote_ratio > 0) {
@@ -1087,8 +1003,9 @@ int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
         std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     // sanity check
     /*   if (current_latency == 0) {
@@ -1137,7 +1054,7 @@ int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments) {
  *
  */
 
-int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
+int apply_pagemigration_lr() {
   int i;
   // apply the next ratio immediately
   if (current_remote_ratio < 100) {
@@ -1165,8 +1082,9 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
     double my_diff = stall_rate.at(BE) - best_stall_rate.at(BE);
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     // First check if we are violating the SLO
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
@@ -1260,7 +1178,7 @@ int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments) {
  *
  */
 
-int apply_pagemigration_lr_dc(std::vector<MySharedMemory> mem_segments) {
+int apply_pagemigration_lr_dc() {
   int i;
   // apply the next ratio immediately
   if (current_remote_ratio < 100) {
@@ -1288,8 +1206,9 @@ int apply_pagemigration_lr_dc(std::vector<MySharedMemory> mem_segments) {
     double my_diff = stall_rate.at(BE) - best_stall_rate.at(BE);
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
-    my_logger(current_remote_ratio, optimal_mba, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     /// Do not care about slo violation just optimize page migration!
     // Check if there is any performance improvement for BE
@@ -1382,8 +1301,9 @@ int release_mba() {
     current_latency = get_percentile_latency();
 
     std::string my_action = "apply_mba-" + std::to_string(100);
-    my_logger(current_remote_ratio, 100, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, 100,
+              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     optimal_mba = 100;
 
@@ -1403,8 +1323,8 @@ int release_mba() {
     current_latency = get_percentile_latency();
 
     std::string my_action = "apply_mba-" + std::to_string(i);
-    my_logger(current_remote_ratio, i, target_slo, current_latency,
-              stall_rate.at(HP), stall_rate.at(BE), my_action);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, i, target_slo,
+              current_latency, stall_rate.at(HP), stall_rate.at(BE), my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp) &&
         current_remote_ratio != 0) {
@@ -1473,20 +1393,6 @@ int mba_binary_search(int current_mba, double progress) {
  */
 
 void bw_manager_test() {
-  // double target_stall_rate;
-
-  // First read the memory segments to be moved
-  std::vector<MySharedMemory> mem_segments = get_shared_memory();
-  LINFOF("Number of Segments: %lu", mem_segments.size());
-
-  // some sanity check
-  if (mem_segments.size() == 0) {
-    LINFO("No segments found! Exiting");
-    destroy_shared_memory();
-    stop_all_counters();
-    exit(EXIT_FAILURE);
-  }
-
   LINFO("==============================================");
   LINFO("TESTING get_target_stall_rate function");
   LINFO("----------------------------------------------");
@@ -1510,12 +1416,12 @@ void bw_manager_test() {
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_lr function");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_lr(mem_segments);
+  current_remote_ratio = apply_pagemigration_lr();
 
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_rl function");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_rl(mem_segments);
+  current_remote_ratio = apply_pagemigration_rl();
 
   LINFO("==============================================");
   LINFO("TESTING release_mba function");
@@ -1528,32 +1434,10 @@ void bw_manager_test() {
 }
 
 void find_optimal_lr_ratio() {
-  // double target_stall_rate;
-
-  // First read the memory segments to be moved
-  std::vector<MySharedMemory> mem_segments = get_shared_memory();
-  LINFOF("Number of Segments: %lu", mem_segments.size());
-
-  // some sanity check
-  if (mem_segments.size() == 0) {
-    LINFO("No segments found! Exiting");
-    destroy_shared_memory();
-    stop_all_counters();
-    exit(EXIT_FAILURE);
-  }
-
-  int i;
-  for (i = 0; i < active_cpus; i++) {
-    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
-    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
-  }
-  LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
-         best_stall_rate.at(BE), prev_stall_rate.at(BE));
-
   LINFO("==============================================");
   LINFO("Finding optimal Local-remote ratio for BE");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_lr(mem_segments);
+  current_remote_ratio = apply_pagemigration_lr();
 
   // print the logs
   print_logs();
@@ -1565,15 +1449,13 @@ void find_optimal_lr_ratio() {
  */
 void print_logs() {
   for (size_t j = 0; j < my_logs.size(); j++) {
-    /*printf("%d\t%d\t%.10lf\t%.10lf\t%.10lf\t%s\n",
-     my_logs.at(j).current_remote_ratio, my_logs.at(j).current_mba_level,
-     my_logs.at(j).HPA_target_stall_rate, my_logs.at(j).HPA_stall_rate,
-     my_logs.at(j).BEA_stall_rate, my_logs.at(j).action);*/
-
     std::cout << std::fixed;
     std::cout << std::setprecision(10);
 
-    cout << my_logs.at(j).current_remote_ratio << "\t"
+    std::time_t now_c =
+        std::chrono::system_clock::to_time_t(my_logs.at(j).timenow);
+
+    cout << now_c << "\t" << my_logs.at(j).current_remote_ratio << "\t"
          << my_logs.at(j).current_mba_level << "\t"
          << (int)my_logs.at(j).HPA_target_slo << "\t"
          << "\t" << (int)my_logs.at(j).HPA_currency_latency << "\t"
@@ -1585,26 +1467,16 @@ void print_logs() {
 /*
  * Log all the current information
  */
-void my_logger(int crr, int cml, double hpt, double hcl, double hps, double bes,
+void my_logger(std::chrono::system_clock::time_point tn, int crr, int cml,
+               double hpt, double hcl, double hps, double bes,
                std::string action) {
   // Log all the current information:
-  MyLogger mylogger(crr, cml, hpt, hcl, hps, bes, action);
+  MyLogger mylogger(tn, crr, cml, hpt, hcl, hps, bes, action);
 
   my_logs.push_back(mylogger);
 }
 
 void test_fixed_ratio() {
-  // First read the memory segments to be moved
-  std::vector<MySharedMemory> mem_segments = get_shared_memory();
-  LINFOF("Number of Segments: %lu", mem_segments.size());
-
-  // some sanity check
-  if (mem_segments.size() == 0) {
-    LINFO("No segments found! Exiting");
-    destroy_shared_memory();
-    stop_all_counters();
-    exit(EXIT_FAILURE);
-  }
   stall_rate =
       get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
   LINFOF("Before: stall_rate(BE): %.10lf, stall_rate(HP): %.10lf",

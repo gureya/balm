@@ -24,8 +24,8 @@ bool BWMAN_MODE = false;
 bool FIXED_RATIO = false;
 
 int BWMAN_WORKERS = 1;
-int bwman_mode_value =
-    0;  // 0 - adaptive-coscheduled, 1 - fixed-ratio, 2 - adaptive-standalone
+// 0 - adaptive-coscheduled, 1 - fixed-ratio, 2 - adaptive-standalone
+int bwman_mode_value = 0;
 int fixed_ratio_value = 0;
 
 static bool is_initialized = false;
@@ -52,6 +52,8 @@ int port;
 
 int current_remote_ratio;
 int optimal_mba = 100;
+double delta_hp;  // operational region of the controller (5%) - HP
+double delta_be;  // operational region of the controller (5%) - BE
 
 void read_config(int argc, const char *argv[]) {
   try {
@@ -76,7 +78,11 @@ void read_config(int argc, const char *argv[]) {
         "tcp server for latency measurements")(
         "PORT,p", value<int>(&port)->default_value(1234), "tcp server port")(
         "REMOTE_RATIO,r", value<int>(&current_remote_ratio)->default_value(0),
-        "current remote ratio");
+        "current remote ratio")("DELTA_HP,o",
+                                value<double>(&delta_hp)->default_value(0.5),
+                                "HP operation region")(
+        "DELTA_BE,b", value<double>(&delta_be)->default_value(0.001),
+        "BE operation region");
 
     variables_map vm;
     store(parse_command_line(argc, argv, generalOptions), vm);
@@ -94,6 +100,8 @@ void read_config(int argc, const char *argv[]) {
       LINFOF("TCP_SERVER: %s", server.c_str());
       LINFOF("PORT: %d", port);
       LINFOF("REMOTE_RATIO: %d", current_remote_ratio);
+      LINFOF("DELTA_HP: %.2lf", delta_hp);
+      LINFOF("DELTA_BE: %.4lf", delta_be);
     }
   } catch (const error &ex) {
     std::cerr << ex.what() << '\n';
@@ -177,6 +185,11 @@ void read_config(int argc, const char *argv[]) {
 }
 
 void start_bw_manager() {
+  // First read the memory segments to be moved
+  if (bwman_mode_value != 3) {
+    get_memory_segments();
+  }
+
   switch (bwman_mode_value) {
     case 0:
       LINFO("Running the abc-numa mode!");

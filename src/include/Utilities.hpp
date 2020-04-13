@@ -10,6 +10,10 @@
 
 #include <vector>
 
+// for printing the timestamps
+#include <chrono>
+#include <ctime>
+
 #include "include/MySharedMemory.hpp"
 
 void read_weights(std::string filename);
@@ -37,22 +41,23 @@ void disabled_controller(void);
 
 // Important Functionalities
 void apply_mba(int mba_value);
-int search_optimal_mba();
+int search_optimal_mba(void);
 int mba_binary_search(int current_mba, double progress);
-int apply_pagemigration_rl(std::vector<MySharedMemory> mem_segments);
-int apply_pagemigration_lr(std::vector<MySharedMemory> mem_segments);
-int apply_pagemigration_rl_be(std::vector<MySharedMemory> mem_segments);
-int check_opt_direction(std::vector<MySharedMemory> mem_segments);
-int release_mba();
-int apply_pagemigration_lr_dc(std::vector<MySharedMemory> mem_segments);
+int apply_pagemigration_rl(void);
+int apply_pagemigration_lr(void);
+int apply_pagemigration_rl_be(void);
+int check_opt_direction(void);
+int release_mba(void);
+int apply_pagemigration_lr_dc(void);
+void get_memory_segments(void);
 
 void signalHandler(int signum);
 
 // test functions
 void bw_manager_test(void);
 void find_optimal_lr_ratio(void);
-void my_logger(int crr, int cml, double hpt, double hcl, double hps, double bes,
-               std::string);
+void my_logger(std::chrono::system_clock::time_point tn, int crr, int cml,
+               double hpt, double hcl, double hps, double bes, std::string);
 void test_fixed_ratio(void);
 void print_logs(void);
 

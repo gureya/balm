@@ -8,10 +8,12 @@
 #ifndef INCLUDE_MYLOGGER_HPP_
 #define INCLUDE_MYLOGGER_HPP_
 
+#include <chrono>
 #include <string>
 
 class MyLogger {
  public:
+  std::chrono::system_clock::time_point timenow;
   int current_remote_ratio;
   int current_mba_level;
   double HPA_target_slo;
@@ -21,8 +23,8 @@ class MyLogger {
   std::string action;
 
   // constructor
-  MyLogger(int crr, int cml, double hpt, double hcl, double hps, double bes,
-           std::string act);
+  MyLogger(std::chrono::system_clock::time_point tn, int crr, int cml,
+           double hpt, double hcl, double hps, double bes, std::string act);
 };
 
 #endif /* INCLUDE_MYLOGGER_HPP_ */

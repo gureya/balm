@@ -7,8 +7,10 @@
 
 #include "include/MyLogger.hpp"
 
-MyLogger::MyLogger(int crr, int cml, double hpt, double hcl, double hps,
-                   double bes, std::string act) {
+MyLogger::MyLogger(std::chrono::system_clock::time_point tn, int crr, int cml,
+                   double hpt, double hcl, double hps, double bes,
+                   std::string act) {
+  timenow = tn;
   current_remote_ratio = crr;
   current_mba_level = cml;
   HPA_target_slo = hpt;
