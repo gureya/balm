@@ -144,7 +144,8 @@ void abc_numa() {
         // optimal_mba = search_optimal_mba();
         apply_mba(10);
         optimal_mba = 10;
-
+        // sleep for 1 sec
+        sleep(1);
         // Enforce Lazy Page migration while releasing MBA
         while (optimal_mba != 100) {
           // apply page migration
@@ -937,7 +938,9 @@ int apply_pagemigration_rl() {
     //      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
     // sleep for 100ms
-    usleep(100000);
+    // usleep(100000);
+    // sleep for 1 sec
+    sleep(1);
     // Measure the current latency measurement
     current_latency = get_percentile_latency();
 
@@ -1298,8 +1301,9 @@ int release_mba() {
     apply_mba(100);
 
     // sleep for 100ms
-    usleep(100000);
-
+    // usleep(100000);
+    // sleep for 1 sec
+    sleep(1);
     // Measure the stall_rate of the applications
     // stall_rate =
     //     get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
@@ -1324,8 +1328,9 @@ int release_mba() {
     apply_mba(i);
 
     // sleep for 100ms
-    usleep(100000);
-
+    // usleep(100000);
+    // sleep for 1 sec
+    sleep(1);
     // Measure the stall_rate of the applications
     // stall_rate =
     //    get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
