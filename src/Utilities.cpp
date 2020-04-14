@@ -141,7 +141,9 @@ void abc_numa() {
       if (current_remote_ratio != 0) {
         // Enforce MBA
         LINFO("------------------------------------------------------");
-        optimal_mba = search_optimal_mba();
+        // optimal_mba = search_optimal_mba();
+        apply_mba(10);
+        optimal_mba = 10;
 
         // Enforce Lazy Page migration while releasing MBA
         while (optimal_mba != 100) {
@@ -266,14 +268,21 @@ void page_migration_only() {
               my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
-      LINFOF(
-          "SLO has been violated (ABOVE operation region) target: %.0lf, "
-          "current: %.0lf",
-          target_slo, current_latency);
+      if (current_remote_ratio != 0) {
+        LINFOF(
+            "SLO has been violated (ABOVE operation region) target: %.0lf, "
+            "current: %.0lf",
+            target_slo, current_latency);
 
-      // apply page migration
-      LINFO("------------------------------------------------------");
-      current_remote_ratio = apply_pagemigration_rl();
+        // apply page migration
+        LINFO("------------------------------------------------------");
+        current_remote_ratio = apply_pagemigration_rl();
+      } else {
+        LINFO(
+            "Nothing can be done about SLO violation (Change in workload!), "
+            "Find new target SLO!");
+        LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
+      }
     }
 
     /*  else {
@@ -924,15 +933,17 @@ int apply_pagemigration_rl() {
     place_all_pages(mem_segments, i);
 
     // Measure the stall_rate of the applications
-    stall_rate =
-        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+    //  stall_rate =
+    //      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
+    // sleep for 100ms
+    usleep(100000);
     // Measure the current latency measurement
     current_latency = get_percentile_latency();
 
     // update the BE best stall rate
-    best_stall_rate.at(BE) =
-        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+    // best_stall_rate.at(BE) =
+    //    std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
@@ -1286,9 +1297,12 @@ int release_mba() {
   if (current_remote_ratio == 0) {
     apply_mba(100);
 
+    // sleep for 100ms
+    usleep(100000);
+
     // Measure the stall_rate of the applications
-    stall_rate =
-        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+    // stall_rate =
+    //     get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
     // Measure the current latency
     current_latency = get_percentile_latency();
@@ -1308,9 +1322,13 @@ int release_mba() {
     if (i == 70 || i == 80) continue;
 
     apply_mba(i);
+
+    // sleep for 100ms
+    usleep(100000);
+
     // Measure the stall_rate of the applications
-    stall_rate =
-        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+    // stall_rate =
+    //    get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
     // Measure the current latency
     current_latency = get_percentile_latency();
