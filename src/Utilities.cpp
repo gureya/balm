@@ -159,74 +159,72 @@ void abc_numa() {
             "Find new target SLO!");
         LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
-
     }
 
-    else {
-      LINFOF(
-          "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
-          "current: %.0lf",
-          target_slo, current_latency);
+    /*  else {
+        LINFOF(
+            "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
+            "current: %.0lf",
+            target_slo, current_latency);
 
-      /*
-       * Optimize page migration either way (local to remote and vice versa)!
-       * if the current stall rate is smaller than the previous stall rate,
-       * move pages from local to remote node
-       * Otherwise the BE may have become less memory-intensive,
-       * move pages from remote to local node
-       *
-       */
+        /*
+         * Optimize page migration either way (local to remote and vice versa)!
+         * if the current stall rate is smaller than the previous stall rate,
+         * move pages from local to remote node
+         * Otherwise the BE may have become less memory-intensive,
+         * move pages from remote to local node
+         *
+         */
 
-      /*
-       * After a new iteraion check if the current stall rate is within the
-       * optimal region
-       */
-      double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
-      LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
-             stall_rate.at(BE), best_stall_rate.at(BE), diff);
+    /*
+     * After a new iteraion check if the current stall rate is within the
+     * optimal region
+     */
+    /*    double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+        LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
+               stall_rate.at(BE), best_stall_rate.at(BE), diff);
 
-      if (abs(diff) > phase_change &&
-          abs(diff) != std::numeric_limits<double>::infinity()) {
-        optimization_complete = false;
-        LINFOF("Phase change detected, diff: %.10lf", diff);
-        // reset the best ratio value!
-        best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
-        // fix this
-        // check the direction of the optimization process!
-        int direction = check_opt_direction();
+        if (abs(diff) > phase_change &&
+            abs(diff) != std::numeric_limits<double>::infinity()) {
+          optimization_complete = false;
+          LINFOF("Phase change detected, diff: %.10lf", diff);
+          // reset the best ratio value!
+          best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
+          // fix this
+          // check the direction of the optimization process!
+          int direction = check_opt_direction();
 
-        if (direction == 1) {
-          current_remote_ratio = apply_pagemigration_rl_be();
-        } else {
-          current_remote_ratio = apply_pagemigration_lr();
-        }
-      } else {
-        if (!optimization_complete) {
-          if ((diff < -(delta_be)) ||
-              diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-            current_remote_ratio = apply_pagemigration_lr();
-          } else if ((diff > delta_be) ||
-                     diff == -(std::numeric_limits<double>::infinity())) {
+          if (direction == 1) {
             current_remote_ratio = apply_pagemigration_rl_be();
-          } else if ((diff != 0 && diff > -(delta_be) && diff < delta_be) ||
-                     diff == -(std::numeric_limits<double>::infinity())) {
-            LINFOF(
-                "Nothing can be done (SLO within the operation region && No "
-                "performance improvement for BE), delta_be: %.10lf",
-                diff);
-            // update the BE best stall rate
-            best_stall_rate.at(BE) =
-                std::min(best_stall_rate.at(BE), stall_rate.at(BE));
           } else {
-            LINFO("Something else happened");
-            exit(EXIT_FAILURE);
+            current_remote_ratio = apply_pagemigration_lr();
+          }
+        } else {
+          if (!optimization_complete) {
+            if ((diff < -(delta_be)) ||
+                diff == -(std::numeric_limits<double>::infinity()) || diff == 0)
+      { current_remote_ratio = apply_pagemigration_lr(); } else if ((diff >
+      delta_be) || diff == -(std::numeric_limits<double>::infinity())) {
+              current_remote_ratio = apply_pagemigration_rl_be();
+            } else if ((diff != 0 && diff > -(delta_be) && diff < delta_be) ||
+                       diff == -(std::numeric_limits<double>::infinity())) {
+              LINFOF(
+                  "Nothing can be done (SLO within the operation region && No "
+                  "performance improvement for BE), delta_be: %.10lf",
+                  diff);
+              // update the BE best stall rate
+              best_stall_rate.at(BE) =
+                  std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+            } else {
+              LINFO("Something else happened");
+              exit(EXIT_FAILURE);
+            }
           }
         }
       }
-    }
 
-    LINFO("OPTIMIZATION COMPLETED!");
-    optimization_complete = true;
+      LINFO("OPTIMIZATION COMPLETED!");
+      optimization_complete = true;*/
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
     LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
@@ -278,71 +276,70 @@ void page_migration_only() {
       current_remote_ratio = apply_pagemigration_rl();
     }
 
-    else {
-      LINFOF(
-          "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
-          "current: %.0lf",
-          target_slo, current_latency);
+    /*  else {
+        LINFOF(
+            "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
+            "current: %.0lf",
+            target_slo, current_latency);
 
-      /*
-       * Optimize page migration either way (local to remote and vice versa)!
-       * if the current stall rate is smaller than the previous stall rate,
-       * move pages from local to remote node
-       * Otherwise the BE may have become less memory-intensive,
-       * move pages from remote to local node
-       *
-       */
+        /*
+         * Optimize page migration either way (local to remote and vice versa)!
+         * if the current stall rate is smaller than the previous stall rate,
+         * move pages from local to remote node
+         * Otherwise the BE may have become less memory-intensive,
+         * move pages from remote to local node
+         *
+         */
 
-      /*
-       * After a new iteraion check if the current stall rate is within the
-       * optimal region
-       */
-      double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
-      LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
-             stall_rate.at(BE), best_stall_rate.at(BE), diff);
+    /*
+     * After a new iteraion check if the current stall rate is within the
+     * optimal region
+     */
+    /*    double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+        LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
+               stall_rate.at(BE), best_stall_rate.at(BE), diff);
 
-      if (abs(diff) > phase_change &&
-          abs(diff) != std::numeric_limits<double>::infinity()) {
-        optimization_complete = false;
-        LINFOF("Phase change detected, diff: %.10lf", diff);
-        // reset the best ratio value!
-        best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
-        // fix this
-        // check the direction of the optimization process!
-        int direction = check_opt_direction();
+        if (abs(diff) > phase_change &&
+            abs(diff) != std::numeric_limits<double>::infinity()) {
+          optimization_complete = false;
+          LINFOF("Phase change detected, diff: %.10lf", diff);
+          // reset the best ratio value!
+          best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
+          // fix this
+          // check the direction of the optimization process!
+          int direction = check_opt_direction();
 
-        if (direction == 1) {
-          current_remote_ratio = apply_pagemigration_rl_be();
-        } else {
-          current_remote_ratio = apply_pagemigration_lr();
-        }
-      } else {
-        if (!optimization_complete) {
-          if ((diff < -(delta_be)) ||
-              diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-            current_remote_ratio = apply_pagemigration_lr();
-          } else if ((diff > delta_be) ||
-                     diff == -(std::numeric_limits<double>::infinity())) {
+          if (direction == 1) {
             current_remote_ratio = apply_pagemigration_rl_be();
-          } else if ((diff > -(delta_be) && diff < delta_be) ||
-                     diff == -(std::numeric_limits<double>::infinity())) {
-            LINFOF(
-                "Nothing can be done (SLO within the operation region && No "
-                "performance improvement for BE), delta_be: %.10lf",
-                diff);
-            // update the BE best stall rate
-            best_stall_rate.at(BE) =
-                std::min(best_stall_rate.at(BE), stall_rate.at(BE));
           } else {
-            LINFO("Something else happened");
-            exit(EXIT_FAILURE);
+            current_remote_ratio = apply_pagemigration_lr();
+          }
+        } else {
+          if (!optimization_complete) {
+            if ((diff < -(delta_be)) ||
+                diff == -(std::numeric_limits<double>::infinity()) || diff == 0)
+      { current_remote_ratio = apply_pagemigration_lr(); } else if ((diff >
+      delta_be) || diff == -(std::numeric_limits<double>::infinity())) {
+              current_remote_ratio = apply_pagemigration_rl_be();
+            } else if ((diff > -(delta_be) && diff < delta_be) ||
+                       diff == -(std::numeric_limits<double>::infinity())) {
+              LINFOF(
+                  "Nothing can be done (SLO within the operation region && No "
+                  "performance improvement for BE), delta_be: %.10lf",
+                  diff);
+              // update the BE best stall rate
+              best_stall_rate.at(BE) =
+                  std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+            } else {
+              LINFO("Something else happened");
+              exit(EXIT_FAILURE);
+            }
           }
         }
       }
-    }
 
-    LINFO("OPTIMIZATION COMPLETED!");
-    optimization_complete = true;
+      LINFO("OPTIMIZATION COMPLETED!");
+      optimization_complete = true;*/
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
     LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
@@ -431,72 +428,70 @@ void mba_only() {
             "Find new target SLO!");
         LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
-
     }
 
-    else {
-      LINFOF(
-          "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
-          "current: %.0lf",
-          target_slo, current_latency);
+    /*  else {
+        LINFOF(
+            "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
+            "current: %.0lf",
+            target_slo, current_latency);
 
-      // first release mba if any
-      // Release MBA
-      while (optimal_mba != 100 && !optimization_complete) {
-        LINFO("------------------------------------------------------");
-        optimal_mba = release_mba();
-      }
-
-      /*
-       * After a new iteraion check if the current stall rate is within the
-       * optimal region
-       */
-      double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
-      LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
-             stall_rate.at(BE), best_stall_rate.at(BE), diff);
-
-      if (abs(diff) > phase_change &&
-          abs(diff) != std::numeric_limits<double>::infinity()) {
-        optimization_complete = false;
-        LINFOF("Phase change detected, diff: %.10lf", diff);
-        // reset the best ratio value!
-        best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
-        // fix this
-        // check the direction of the optimization process!
-        int direction = check_opt_direction();
-
-        if (direction == 1) {
-          current_remote_ratio = apply_pagemigration_rl_be();
-        } else {
-          current_remote_ratio = apply_pagemigration_lr();
+        // first release mba if any
+        // Release MBA
+        while (optimal_mba != 100 && !optimization_complete) {
+          LINFO("------------------------------------------------------");
+          optimal_mba = release_mba();
         }
-      } else {
-        if (!optimization_complete) {
-          if ((diff < -(delta_be)) ||
-              diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-            current_remote_ratio = apply_pagemigration_lr();
-          } else if ((diff > delta_be) ||
-                     diff == -(std::numeric_limits<double>::infinity())) {
+
+        /*
+         * After a new iteraion check if the current stall rate is within the
+         * optimal region
+         */
+    /*    double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+        LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
+               stall_rate.at(BE), best_stall_rate.at(BE), diff);
+
+        if (abs(diff) > phase_change &&
+            abs(diff) != std::numeric_limits<double>::infinity()) {
+          optimization_complete = false;
+          LINFOF("Phase change detected, diff: %.10lf", diff);
+          // reset the best ratio value!
+          best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
+          // fix this
+          // check the direction of the optimization process!
+          int direction = check_opt_direction();
+
+          if (direction == 1) {
             current_remote_ratio = apply_pagemigration_rl_be();
-          } else if ((diff > -(delta_be) && diff < delta_be) ||
-                     diff == -(std::numeric_limits<double>::infinity())) {
-            LINFOF(
-                "Nothing can be done (SLO within the operation region && No "
-                "performance improvement for BE), delta_be: %.10lf",
-                diff);
-            // update the BE best stall rate
-            best_stall_rate.at(BE) =
-                std::min(best_stall_rate.at(BE), stall_rate.at(BE));
           } else {
-            LINFO("Something else happened");
-            exit(EXIT_FAILURE);
+            current_remote_ratio = apply_pagemigration_lr();
+          }
+        } else {
+          if (!optimization_complete) {
+            if ((diff < -(delta_be)) ||
+                diff == -(std::numeric_limits<double>::infinity()) || diff == 0)
+      { current_remote_ratio = apply_pagemigration_lr(); } else if ((diff >
+      delta_be) || diff == -(std::numeric_limits<double>::infinity())) {
+              current_remote_ratio = apply_pagemigration_rl_be();
+            } else if ((diff > -(delta_be) && diff < delta_be) ||
+                       diff == -(std::numeric_limits<double>::infinity())) {
+              LINFOF(
+                  "Nothing can be done (SLO within the operation region && No "
+                  "performance improvement for BE), delta_be: %.10lf",
+                  diff);
+              // update the BE best stall rate
+              best_stall_rate.at(BE) =
+                  std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+            } else {
+              LINFO("Something else happened");
+              exit(EXIT_FAILURE);
+            }
           }
         }
       }
-    }
 
-    LINFO("OPTIMIZATION COMPLETED!");
-    optimization_complete = true;
+      LINFO("OPTIMIZATION COMPLETED!");
+      optimization_complete = true;*/
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
     LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
@@ -554,72 +549,70 @@ void mba_10() {
             "Find new target SLO!");
         LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
-
     }
 
-    else {
-      LINFOF(
-          "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
-          "current: %.0lf",
-          target_slo, current_latency);
+    /*  else {
+        LINFOF(
+            "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
+            "current: %.0lf",
+            target_slo, current_latency);
 
-      // first release mba if any
-      // Release MBA
-      while (optimal_mba != 100 && !optimization_complete) {
-        LINFO("------------------------------------------------------");
-        optimal_mba = release_mba();
-      }
-
-      /*
-       * After a new iteraion check if the current stall rate is within the
-       * optimal region
-       */
-      double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
-      LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
-             stall_rate.at(BE), best_stall_rate.at(BE), diff);
-
-      if (abs(diff) > phase_change &&
-          abs(diff) != std::numeric_limits<double>::infinity()) {
-        optimization_complete = false;
-        LINFOF("Phase change detected, diff: %.10lf", diff);
-        // reset the best ratio value!
-        best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
-        // fix this
-        // check the direction of the optimization process!
-        int direction = check_opt_direction();
-
-        if (direction == 1) {
-          current_remote_ratio = apply_pagemigration_rl_be();
-        } else {
-          current_remote_ratio = apply_pagemigration_lr();
+        // first release mba if any
+        // Release MBA
+        while (optimal_mba != 100 && !optimization_complete) {
+          LINFO("------------------------------------------------------");
+          optimal_mba = release_mba();
         }
-      } else {
-        if (!optimization_complete) {
-          if ((diff < -(delta_be)) ||
-              diff == -(std::numeric_limits<double>::infinity()) || diff == 0) {
-            current_remote_ratio = apply_pagemigration_lr();
-          } else if ((diff > delta_be) ||
-                     diff == -(std::numeric_limits<double>::infinity())) {
+
+        /*
+         * After a new iteraion check if the current stall rate is within the
+         * optimal region
+         */
+    /*    double diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+        LINFOF("BE current: %.10lf, BE best: %.10lf, diff: %.10lf",
+               stall_rate.at(BE), best_stall_rate.at(BE), diff);
+
+        if (abs(diff) > phase_change &&
+            abs(diff) != std::numeric_limits<double>::infinity()) {
+          optimization_complete = false;
+          LINFOF("Phase change detected, diff: %.10lf", diff);
+          // reset the best ratio value!
+          best_stall_rate.at(BE) = std::numeric_limits<double>::infinity();
+          // fix this
+          // check the direction of the optimization process!
+          int direction = check_opt_direction();
+
+          if (direction == 1) {
             current_remote_ratio = apply_pagemigration_rl_be();
-          } else if ((diff > -(delta_be) && diff < delta_be) ||
-                     diff == -(std::numeric_limits<double>::infinity())) {
-            LINFOF(
-                "Nothing can be done (SLO within the operation region && No "
-                "performance improvement for BE), delta_be: %.10lf",
-                diff);
-            // update the BE best stall rate
-            best_stall_rate.at(BE) =
-                std::min(best_stall_rate.at(BE), stall_rate.at(BE));
           } else {
-            LINFO("Something else happened");
-            exit(EXIT_FAILURE);
+            current_remote_ratio = apply_pagemigration_lr();
+          }
+        } else {
+          if (!optimization_complete) {
+            if ((diff < -(delta_be)) ||
+                diff == -(std::numeric_limits<double>::infinity()) || diff == 0)
+      { current_remote_ratio = apply_pagemigration_lr(); } else if ((diff >
+      delta_be) || diff == -(std::numeric_limits<double>::infinity())) {
+              current_remote_ratio = apply_pagemigration_rl_be();
+            } else if ((diff > -(delta_be) && diff < delta_be) ||
+                       diff == -(std::numeric_limits<double>::infinity())) {
+              LINFOF(
+                  "Nothing can be done (SLO within the operation region && No "
+                  "performance improvement for BE), delta_be: %.10lf",
+                  diff);
+              // update the BE best stall rate
+              best_stall_rate.at(BE) =
+                  std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+            } else {
+              LINFO("Something else happened");
+              exit(EXIT_FAILURE);
+            }
           }
         }
       }
-    }
 
-    LINFO("OPTIMIZATION COMPLETED!");
-    optimization_complete = true;
+      LINFO("OPTIMIZATION COMPLETED!");
+      optimization_complete = true;*/
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
     LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
