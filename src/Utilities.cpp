@@ -553,8 +553,6 @@ void mba_10() {
         LINFO("------------------------------------------------------");
         apply_mba(10);
         optimal_mba = 10;
-        // sleep for 1 sec
-        sleep(1);
       } else {
         LINFO(
             "Nothing can be done about SLO violation (Change in workload!), "
