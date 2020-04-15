@@ -58,7 +58,7 @@ std::vector<MySharedMemory> get_shared_memory() {
     } catch (ipc::interprocess_exception &ex) {
       if (ex.get_error_code() == ipc::not_found_error) {
         LINFOF("%s, keep checking", ex.what());
-        sleep(2);
+        sleep(1);
       } else {
         found = true;
       }
