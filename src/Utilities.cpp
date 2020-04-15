@@ -154,7 +154,7 @@ void abc_numa() {
         apply_mba(10);
         optimal_mba = 10;
         // sleep for 1 sec
-        sleep(1);
+        sleep(sleeptime);
         // Enforce Lazy Page migration while releasing MBA
         while (optimal_mba != 100) {
           // apply page migration
@@ -950,7 +950,7 @@ int apply_pagemigration_rl() {
     // sleep for 100ms
     // usleep(100000);
     // sleep for 1 sec
-    sleep(1);
+    sleep(sleeptime);
     // Measure the current latency measurement
     current_latency = get_percentile_latency();
 
@@ -1313,7 +1313,7 @@ int release_mba() {
     // sleep for 100ms
     // usleep(100000);
     // sleep for 1 sec
-    sleep(1);
+    sleep(sleeptime);
     // Measure the stall_rate of the applications
     // stall_rate =
     //     get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
@@ -1340,7 +1340,7 @@ int release_mba() {
     // sleep for 100ms
     // usleep(100000);
     // sleep for 1 sec
-    sleep(1);
+    sleep(sleeptime);
     // Measure the stall_rate of the applications
     // stall_rate =
     //    get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
@@ -1484,7 +1484,7 @@ void print_logs() {
     cout << now_c << "\t" << my_logs.at(j).current_remote_ratio << "\t"
          << my_logs.at(j).current_mba_level << "\t"
          << (int)my_logs.at(j).HPA_target_slo << "\t"
-         << "\t" << (int)my_logs.at(j).HPA_currency_latency << "\t"
+         << (int)my_logs.at(j).HPA_currency_latency << "\t"
          << my_logs.at(j).HPA_stall_rate << "\t" << my_logs.at(j).BEA_stall_rate
          << "\t" << my_logs.at(j).action << endl;
   }
