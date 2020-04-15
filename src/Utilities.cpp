@@ -60,7 +60,7 @@ void signalHandler(int signum) {
   // terminate program
   destroy_shared_memory();
   stop_all_counters();
-  print_logs();
+  // print_logs();
   print_logs_v2();
   run = 0;
   exit(signum);
@@ -1506,7 +1506,7 @@ void print_logs_v2() {
     std::time_t now_c =
         std::chrono::system_clock::to_time_t(my_logs.at(j).timenow);
 
-    cout << (start_c - now_c) << "\t" << (int)my_logs.at(j).HPA_currency_latency
+    cout << (now_c - start_c) << "\t" << (int)my_logs.at(j).HPA_currency_latency
          << endl;
   }
 }
