@@ -96,6 +96,7 @@ void get_memory_segments() {
   for (i = 0; i < active_cpus; i++) {
     prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
     best_stall_rate.push_back(std::numeric_limits<double>::infinity());
+    stall_rate.push_back(std::numeric_limits<double>::infinity());
   }
   LINFOF("INITIAL Stall rate values: best.BE - %.10lf, previous.BE - %.10lf",
          best_stall_rate.at(BE), prev_stall_rate.at(BE));
