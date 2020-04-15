@@ -743,6 +743,8 @@ void disabled_controller() {
  *
  */
 void linux_default() {
+  stall_rate.push_back(std::numeric_limits<double>::infinity());
+
   while (run) {
     LINFO("======================================================");
     LINFOF("Starting a new iteration: %d", iter);
