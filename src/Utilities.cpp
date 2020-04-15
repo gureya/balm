@@ -48,7 +48,7 @@ double current_latency;
 std::vector<MyLogger> my_logs;
 
 static int run = 1;
-static int sleeptime = 5;
+static int sleeptime = 1;
 
 enum { BE = 0, HP };
 
@@ -116,15 +116,15 @@ void abc_numa() {
     LINFO("------------------------------------------------------");
 
     // Measure the stall_rate of the applications
-    stall_rate =
-        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+    // stall_rate =
+    //     get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
 
     // update the BE best stall rate
-    best_stall_rate.at(BE) =
-        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+    //  best_stall_rate.at(BE) =
+    //      std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
@@ -138,6 +138,14 @@ void abc_numa() {
           "current: %.0lf",
           target_slo, current_latency);
 
+      // just make sure that its not something transient...!
+      // LINFO("Hmm... Are you sure that this is a violation?");
+      // sleep for one second and measure the latency again just to confirm
+      // sleep(1);
+      // double transient_latency = get_percentile_latency();
+
+      //  if (transient_latency > target_slo * (1 + delta_hp)) {
+      //   LINFOF("I guess so!, transient(BE): %.0lf", transient_latency);
       if (current_remote_ratio != 0) {
         // Enforce MBA
         LINFO("------------------------------------------------------");
@@ -162,6 +170,7 @@ void abc_numa() {
             "Find new target SLO!");
         LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
+      // }
     }
 
     /*  else {
@@ -252,15 +261,15 @@ void page_migration_only() {
     LINFO("------------------------------------------------------");
 
     // Measure the stall_rate of the applications
-    stall_rate =
-        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+    // stall_rate =
+    //     get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
 
     // update the BE best stall rate
-    best_stall_rate.at(BE) =
-        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+    // best_stall_rate.at(BE) =
+    //    std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
@@ -526,15 +535,15 @@ void mba_10() {
     LINFO("------------------------------------------------------");
 
     // Measure the stall_rate of the applications
-    stall_rate =
-        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+    //  stall_rate =
+    //      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
 
     // update the BE best stall rate
-    best_stall_rate.at(BE) =
-        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+    //  best_stall_rate.at(BE) =
+    //     std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
@@ -739,8 +748,8 @@ void linux_default() {
     LINFO("------------------------------------------------------");
 
     // Measure the stall_rate of the applications
-    stall_rate =
-        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+    // stall_rate =
+    //     get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
