@@ -743,7 +743,13 @@ void disabled_controller() {
  *
  */
 void linux_default() {
-  stall_rate.push_back(std::numeric_limits<double>::infinity());
+  // Initialize the best and previuos stall rates
+  int i;
+  for (i = 0; i < active_cpus; i++) {
+    prev_stall_rate.push_back(std::numeric_limits<double>::infinity());
+    best_stall_rate.push_back(std::numeric_limits<double>::infinity());
+    stall_rate.push_back(std::numeric_limits<double>::infinity());
+  }
 
   while (run) {
     LINFO("======================================================");
