@@ -186,9 +186,9 @@ void read_config(int argc, const char *argv[]) {
 
 void start_bw_manager() {
   // First read the memory segments to be moved
-  if (bwman_mode_value != 3) {
-    get_memory_segments();
-  }
+  // if (bwman_mode_value != 3) {
+  get_memory_segments();
+  //}
 
   switch (bwman_mode_value) {
     case 0:
