@@ -61,6 +61,7 @@ void signalHandler(int signum) {
   destroy_shared_memory();
   stop_all_counters();
   print_logs();
+  print_logs_v2();
   run = 0;
   exit(signum);
 }
@@ -1487,6 +1488,26 @@ void print_logs() {
          << (int)my_logs.at(j).HPA_currency_latency << "\t"
          << my_logs.at(j).HPA_stall_rate << "\t" << my_logs.at(j).BEA_stall_rate
          << "\t" << my_logs.at(j).action << endl;
+  }
+}
+
+void print_logs_v2() {
+  cout << "time (sec)"
+       << "\t"
+       << "QoS" << endl;
+
+  std::time_t start_c =
+      std::chrono::system_clock::to_time_t(my_logs.at(0).timenow);
+
+  for (size_t j = 0; j < my_logs.size(); j++) {
+    std::cout << std::fixed;
+    std::cout << std::setprecision(10);
+
+    std::time_t now_c =
+        std::chrono::system_clock::to_time_t(my_logs.at(j).timenow);
+
+    cout << (start_c - now_c) << "\t" << (int)my_logs.at(j).HPA_currency_latency
+         << endl;
   }
 }
 
