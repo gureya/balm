@@ -34,6 +34,7 @@ useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
 double phase_change = 0.1;    // phase change value
 bool optimization_complete = false;
+bool mba_flag = true;
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -128,6 +129,7 @@ void abc_numa() {
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
+    mba_flag = true;
 
     // update the BE best stall rate
     //  best_stall_rate.at(BE) =
@@ -163,7 +165,8 @@ void abc_numa() {
         // sleep for 1 sec
         sleep(sleeptime);
         // Enforce Lazy Page migration while releasing MBA
-        while (optimal_mba != 100) {
+        while (mba_flag) {
+          // while (optimal_mba != 100) {
           // apply page migration
           LINFO("------------------------------------------------------");
           current_remote_ratio = apply_pagemigration_rl();
@@ -171,6 +174,7 @@ void abc_numa() {
           if (slack > slack_down) {
             LINFO("------------------------------------------------------");
             optimal_mba = release_mba();
+            mba_flag = false;
           }
         }
 
@@ -181,6 +185,12 @@ void abc_numa() {
         LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
       // }
+    } else if (slack > slack_down && current_remote_ratio != 40) {
+      LINFOF(
+          "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
+          "current: %.0lf, slack: %.2lf",
+          target_slo, current_latency, slack);
+      current_remote_ratio = apply_pagemigration_lr();
     }
 
     /*  else {
@@ -1091,25 +1101,26 @@ int apply_pagemigration_lr() {
     current_remote_ratio += ADAPTATION_STEP;
   }
 
-  for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
+  for (i = current_remote_ratio; i <= 40; i += ADAPTATION_STEP) {
     LINFOF("Going to check a ratio of %d", i);
     if (i != 0) {
       place_all_pages(mem_segments, i);
     }
 
     // Measure the stall_rate of the applications
-    stall_rate =
-        get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+    // stall_rate =
+    //     get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
+    sleep(sleeptime);
     // Measure the current latency measurement
     current_latency = get_percentile_latency();
 
     // update the BE best stall rate
-    best_stall_rate.at(BE) =
-        std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+    // best_stall_rate.at(BE) =
+    //     std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     // current diff
-    double my_diff = stall_rate.at(BE) - best_stall_rate.at(BE);
+    // double my_diff = stall_rate.at(BE) - best_stall_rate.at(BE);
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
@@ -1117,11 +1128,17 @@ int apply_pagemigration_lr() {
               my_action);
 
     // First check if we are violating the SLO
-    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
-      LINFOF("SLO has been violated target: %.0lf, current(HP): %.0lf",
-             target_slo, current_latency);
-      LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
-             stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
+    slack = (target_slo - current_latency) / target_slo;
+
+    if (slack < slack_up) {
+      // if (current_latency != 0 && current_latency > target_slo * (1 +
+      // delta_hp)) {
+      LINFOF(
+          "SLO has been violated target: %.0lf, current(HP): %.0lf, slack: "
+          "%.2lf",
+          target_slo, current_latency, slack);
+      // LINFOF("current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf",
+      //        stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE));
       if (i != 0) {
         LINFO("Going one step back before breaking!");
         place_all_pages(mem_segments, (i - ADAPTATION_STEP));
@@ -1129,71 +1146,85 @@ int apply_pagemigration_lr() {
       } else {
         current_remote_ratio = i;
       }
+      break;
+    } else if (slack > slack_down) {
+      LINFOF(
+          "Below the green region, continue climbing, current: %.0lf, slack: "
+          "%.2lf",
+          current_latency, slack);
+      current_remote_ratio = i;
+    } else {
+      LINFOF(
+          "Within the green region, stop climbing, current: %.0lf, slack: "
+          "%.2lf",
+          current_latency, slack);
+      current_remote_ratio = i;
       break;
     }
 
     // then check if there is any performance improvement for BE
-    else if (my_diff > delta_be || std::isnan(stall_rate.at(BE))) {
-      LINFOF(
-          "No performance improvement for the BE, target: %.0lf, current(HP): "
-          "%.0lf",
-          target_slo, current_latency);
-      LINFOF(
-          "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, diff: "
-          "%.10lf",
-          stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
-          my_diff);
-      // just make sure that its not something transient...!
-      LINFO("Hmm... Is this the best we can do?");
-      std::vector<double> stall_rate_transient = get_average_stall_rate(
-          _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
-      if ((stall_rate_transient.at(BE) - best_stall_rate.at(BE)) > delta_be ||
-          std::isnan(stall_rate_transient.at(BE))) {
-        LINFOF("I guess so!, transient(BE): %.10lf",
-               stall_rate_transient.at(BE));
-        if (i != 0) {
-          LINFO("Going one step back before breaking!");
-          place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-          current_remote_ratio = i - ADAPTATION_STEP;
-        } else {
-          current_remote_ratio = i;
-        }
-        break;
-      }
-    }
+    /* else if (my_diff > delta_be || std::isnan(stall_rate.at(BE))) {
+       LINFOF(
+           "No performance improvement for the BE, target: %.0lf, current(HP): "
+           "%.0lf",
+           target_slo, current_latency);
+       LINFOF(
+           "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, diff: "
+           "%.10lf",
+           stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
+           my_diff);
+       // just make sure that its not something transient...!
+       LINFO("Hmm... Is this the best we can do?");
+       std::vector<double> stall_rate_transient = get_average_stall_rate(
+           _num_polls * 2, _poll_sleep, _num_poll_outliers * 2);
+       if ((stall_rate_transient.at(BE) - best_stall_rate.at(BE)) > delta_be ||
+           std::isnan(stall_rate_transient.at(BE))) {
+         LINFOF("I guess so!, transient(BE): %.10lf",
+                stall_rate_transient.at(BE));
+         if (i != 0) {
+           LINFO("Going one step back before breaking!");
+           place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+           current_remote_ratio = i - ADAPTATION_STEP;
+         } else {
+           current_remote_ratio = i;
+         }
+         break;
+       }
+     }
 
-    else if (my_diff != 0 && my_diff > -(delta_be) && my_diff < delta_be) {
-      LINFOF(
-          "No performance improvement for the BE, in the operation region!, "
-          "target: %.0lf, current(HP): %.0lf",
-          target_slo, current_latency);
-      LINFOF(
-          " current(HP): % .10lf, best(BE): % .10lf, current(BE): % .10lf, "
-          "diff: %.10lf",
-          stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
-          my_diff);
-      if (i != 0) {
-        LINFO("Going one step back before breaking!");
-        place_all_pages(mem_segments, (i - ADAPTATION_STEP));
-        current_remote_ratio = i - ADAPTATION_STEP;
-      } else {
-        current_remote_ratio = i;
-      }
-      break;
-    }
+     else if (my_diff != 0 && my_diff > -(delta_be) && my_diff < delta_be) {
+       LINFOF(
+           "No performance improvement for the BE, in the operation region!, "
+           "target: %.0lf, current(HP): %.0lf",
+           target_slo, current_latency);
+       LINFOF(
+           " current(HP): % .10lf, best(BE): % .10lf, current(BE): % .10lf, "
+           "diff: %.10lf",
+           stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
+           my_diff);
+       if (i != 0) {
+         LINFO("Going one step back before breaking!");
+         place_all_pages(mem_segments, (i - ADAPTATION_STEP));
+         current_remote_ratio = i - ADAPTATION_STEP;
+       } else {
+         current_remote_ratio = i;
+       }
+       break;
+     }
 
-    // if performance improvement and no SLO violation continue climbing
-    else {
-      LINFO(
-          "Performance improvement for BE without SLO Violation, continue "
-          "climbing");
-      LINFOF(
-          "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, "
-          "latency(HP): %.0lf, diff: %.10lf",
-          stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
-          current_latency, my_diff);
-      current_remote_ratio = i;
-    }
+     // if performance improvement and no SLO violation continue climbing
+     else {
+       LINFO(
+           "Performance improvement for BE without SLO Violation, continue "
+           "climbing");
+       LINFOF(
+           "current(HP): %.10lf, best(BE): %.10lf, current(BE): %.10lf, "
+           "latency(HP): %.0lf, diff: %.10lf",
+           stall_rate.at(HP), best_stall_rate.at(BE), stall_rate.at(BE),
+           current_latency, my_diff);
+       current_remote_ratio = i;
+     }
+     */
   }
 
   LINFOF("Current remote ratio: %d", current_remote_ratio);
@@ -1367,7 +1398,8 @@ int release_mba() {
 
     slack = (target_slo - current_latency) / target_slo;
 
-    if (slack < slack_up && current_remote_ratio != 0) {
+    // only release mba while we are in the green zone!
+    if (slack > slack_down && current_remote_ratio != 0) {
       //  if (current_latency != 0 && current_latency > target_slo * (1 +
       //  delta_hp) &&
       //     current_remote_ratio != 0) {
