@@ -991,7 +991,7 @@ int apply_pagemigration_rl() {
       }*/
 
     // check if to use the slack_up or slack_down functions!
-    if (slack > slack_up) {
+    if (slack > slack_down) {
       // if (current_latency <= target_slo * (1 + delta_hp)) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.0lf, "
