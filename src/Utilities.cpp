@@ -249,8 +249,10 @@ void abc_numa() {
       optimization_complete = true;*/
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
-    LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
-           optimal_mba);
+    LINFOF(
+        "current_remote_ratio: %d, optimal_mba: %d, current_latency: %.0lf, "
+        "slack: %.2lf",
+        current_remote_ratio, optimal_mba, current_latency, slack);
     iter++;
 
     // print_logs();
