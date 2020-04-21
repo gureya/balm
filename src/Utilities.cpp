@@ -183,7 +183,7 @@ void abc_numa() {
         LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
       // }
-    } else if (slack > slack_down && current_remote_ratio != 40) {
+    } else if (slack > slack_down && current_remote_ratio == 0) {
       LINFOF(
           "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
           "current: %.0lf, slack: %.2lf",
