@@ -42,6 +42,11 @@ std::vector<double> stall_rate(active_cpus);
 std::vector<double> prev_stall_rate(active_cpus);
 std::vector<double> best_stall_rate(active_cpus);
 double current_latency;
+
+// started using slack variable for now!
+double slack_up = 0.05;
+double slack_down = 0.2;
+double slack;
 /////////////////////////////////////////////
 
 // For Logging purposes
@@ -134,20 +139,21 @@ void abc_numa() {
               target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
               my_action);
 
-    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
+    slack = (target_slo - current_latency) / target_slo;
+
+    if (slack < slack_up) {
+      /* if (current_latency != 0 && current_latency > target_slo * (1 +
+       delta_hp)) {
       LINFOF(
           "SLO has been violated (ABOVE operation region) target: %.0lf, "
           "current: %.0lf",
-          target_slo, current_latency);
+          target_slo, current_latency);*/
 
-      // just make sure that its not something transient...!
-      // LINFO("Hmm... Are you sure that this is a violation?");
-      // sleep for one second and measure the latency again just to confirm
-      // sleep(1);
-      // double transient_latency = get_percentile_latency();
+      LINFOF(
+          "SLO is about to be violated, slack: %.2lf, target: %.0lf, current: "
+          "%.0lf",
+          slack, target_slo, current_latency);
 
-      //  if (transient_latency > target_slo * (1 + delta_hp)) {
-      //   LINFOF("I guess so!, transient(BE): %.0lf", transient_latency);
       if (current_remote_ratio != 0) {
         // Enforce MBA
         LINFO("------------------------------------------------------");
@@ -161,9 +167,11 @@ void abc_numa() {
           // apply page migration
           LINFO("------------------------------------------------------");
           current_remote_ratio = apply_pagemigration_rl();
-          // release MBA
-          LINFO("------------------------------------------------------");
-          optimal_mba = release_mba();
+          // release MBA, only if we are below the operation region
+          if (slack > slack_down) {
+            LINFO("------------------------------------------------------");
+            optimal_mba = release_mba();
+          }
         }
 
       } else {
@@ -964,16 +972,18 @@ int apply_pagemigration_rl() {
               target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
               my_action);
 
-    // sanity check
-    if (current_latency == 0) {
-      LINFOF(
-          "NAN HP latency (STOP page migration): target: %.0lf, current: %.0lf",
-          target_slo, current_latency);
-      current_remote_ratio = i;
-      break;
-    }
+    slack = (target_slo - current_latency) / target_slo;
 
-    if (current_latency <= target_slo * (1 + delta_hp)) {
+    // sanity check
+    /*  if (current_latency == 0) {
+        LINFOF(
+            "NAN HP latency (STOP page migration): target: %.0lf, current:
+      %.0lf", target_slo, current_latency); current_remote_ratio = i; break;
+      }*/
+
+    // check if to use the slack_up or slack_down functions!
+    if (slack > slack_up) {
+      // if (current_latency <= target_slo * (1 + delta_hp)) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.0lf, "
           "current: %.0lf",
@@ -1353,8 +1363,12 @@ int release_mba() {
     my_logger(chrono::system_clock::now(), current_remote_ratio, i, target_slo,
               current_latency, stall_rate.at(HP), stall_rate.at(BE), my_action);
 
-    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp) &&
-        current_remote_ratio != 0) {
+    slack = (target_slo - current_latency) / target_slo;
+
+    if (slack < slack_up && current_remote_ratio != 0) {
+      //  if (current_latency != 0 && current_latency > target_slo * (1 +
+      //  delta_hp) &&
+      //     current_remote_ratio != 0) {
       LINFOF(
           "SLO violation has been detected (STOP releasing MBA): target: "
           "%.0lf, current: %.0lf",

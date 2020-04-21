@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 
   while (true) {
     client(host, port);
-    sleep(5);
+    sleep(1);
   }
 
   return 0;
