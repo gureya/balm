@@ -18,13 +18,15 @@ class MyLogger {
   int current_mba_level;
   double HPA_target_slo;
   double HPA_currency_latency;
+  double HPA_slack;
   double HPA_stall_rate;
   double BEA_stall_rate;
   std::string action;
 
   // constructor
   MyLogger(std::chrono::system_clock::time_point tn, int crr, int cml,
-           double hpt, double hcl, double hps, double bes, std::string act);
+           double hpt, double hcl, double slk, double hps, double bes,
+           std::string act);
 };
 
 #endif /* INCLUDE_MYLOGGER_HPP_ */

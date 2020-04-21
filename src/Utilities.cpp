@@ -66,7 +66,7 @@ void signalHandler(int signum) {
   // terminate program
   destroy_shared_memory();
   stop_all_counters();
-  // print_logs();
+  print_logs();
   print_logs_v2();
   run = 0;
   exit(signum);
@@ -130,7 +130,7 @@ void abc_numa() {
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
     mba_flag = true;
-
+    slack = (target_slo - current_latency) / target_slo;
     // update the BE best stall rate
     //  best_stall_rate.at(BE) =
     //      std::min(best_stall_rate.at(BE), stall_rate.at(BE));
@@ -138,10 +138,8 @@ void abc_numa() {
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
-
-    slack = (target_slo - current_latency) / target_slo;
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     if (slack < slack_up) {
       /* if (current_latency != 0 && current_latency > target_slo * (1 +
@@ -296,8 +294,8 @@ void page_migration_only() {
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       if (current_remote_ratio != 0) {
@@ -449,8 +447,8 @@ void mba_only() {
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
@@ -570,8 +568,8 @@ void mba_10() {
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
       LINFOF(
@@ -691,8 +689,8 @@ void disabled_controller() {
     // log the measurements for the debugging purposes!
     std::string my_action = "iteration-" + std::to_string(iter);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     LINFOF(
         "Optimizing page migration without considering SLO target: %.0lf, "
@@ -783,8 +781,8 @@ void linux_default() {
 
     std::string my_action = "iter-" + std::to_string(iter);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     iter++;
 
@@ -916,7 +914,8 @@ int search_optimal_mba() {
 
     std::string my_action = "apply_mba-" + std::to_string(i);
     my_logger(chrono::system_clock::now(), current_remote_ratio, i, target_slo,
-              current_latency, stall_rate.at(HP), stall_rate.at(BE), my_action);
+              current_latency, slack, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     // sanity checker
     if (current_latency == 0) {
@@ -974,17 +973,15 @@ int apply_pagemigration_rl() {
     sleep(sleeptime);
     // Measure the current latency measurement
     current_latency = get_percentile_latency();
-
+    slack = (target_slo - current_latency) / target_slo;
     // update the BE best stall rate
     // best_stall_rate.at(BE) =
     //    std::min(best_stall_rate.at(BE), stall_rate.at(BE));
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
-
-    slack = (target_slo - current_latency) / target_slo;
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     // sanity check
     /*  if (current_latency == 0) {
@@ -1044,8 +1041,8 @@ int apply_pagemigration_rl_be() {
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     // sanity check
     /*   if (current_latency == 0) {
@@ -1114,6 +1111,8 @@ int apply_pagemigration_lr() {
     sleep(sleeptime);
     // Measure the current latency measurement
     current_latency = get_percentile_latency();
+    // First check if we are violating the SLO
+    slack = (target_slo - current_latency) / target_slo;
 
     // update the BE best stall rate
     // best_stall_rate.at(BE) =
@@ -1124,11 +1123,8 @@ int apply_pagemigration_lr() {
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
-
-    // First check if we are violating the SLO
-    slack = (target_slo - current_latency) / target_slo;
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     if (slack < slack_up) {
       // if (current_latency != 0 && current_latency > target_slo * (1 +
@@ -1268,8 +1264,8 @@ int apply_pagemigration_lr_dc() {
 
     std::string my_action = "apply_ratio-" + std::to_string(i);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     /// Do not care about slo violation just optimize page migration!
     // Check if there is any performance improvement for BE
@@ -1364,11 +1360,12 @@ int release_mba() {
 
     // Measure the current latency
     current_latency = get_percentile_latency();
+    slack = (target_slo - current_latency) / target_slo;
 
     std::string my_action = "apply_mba-" + std::to_string(100);
     my_logger(chrono::system_clock::now(), current_remote_ratio, 100,
-              target_slo, current_latency, stall_rate.at(HP), stall_rate.at(BE),
-              my_action);
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action);
 
     optimal_mba = 100;
 
@@ -1391,12 +1388,12 @@ int release_mba() {
 
     // Measure the current latency
     current_latency = get_percentile_latency();
+    slack = (target_slo - current_latency) / target_slo;
 
     std::string my_action = "apply_mba-" + std::to_string(i);
     my_logger(chrono::system_clock::now(), current_remote_ratio, i, target_slo,
-              current_latency, stall_rate.at(HP), stall_rate.at(BE), my_action);
-
-    slack = (target_slo - current_latency) / target_slo;
+              current_latency, slack, stall_rate.at(HP), stall_rate.at(BE),
+              my_action);
 
     // only release mba while we are in the green zone!
     if (slack > slack_down && current_remote_ratio != 0) {
@@ -1534,8 +1531,9 @@ void print_logs() {
          << my_logs.at(j).current_mba_level << "\t"
          << (int)my_logs.at(j).HPA_target_slo << "\t"
          << (int)my_logs.at(j).HPA_currency_latency << "\t"
-         << my_logs.at(j).HPA_stall_rate << "\t" << my_logs.at(j).BEA_stall_rate
-         << "\t" << my_logs.at(j).action << endl;
+         << my_logs.at(j).HPA_slack << "\t" << my_logs.at(j).HPA_stall_rate
+         << "\t" << my_logs.at(j).BEA_stall_rate << "\t" << my_logs.at(j).action
+         << endl;
   }
 }
 
@@ -1563,10 +1561,10 @@ void print_logs_v2() {
  * Log all the current information
  */
 void my_logger(std::chrono::system_clock::time_point tn, int crr, int cml,
-               double hpt, double hcl, double hps, double bes,
+               double hpt, double hcl, double slk, double hps, double bes,
                std::string action) {
   // Log all the current information:
-  MyLogger mylogger(tn, crr, cml, hpt, hcl, hps, bes, action);
+  MyLogger mylogger(tn, crr, cml, hpt, hcl, slk, hps, bes, action);
 
   my_logs.push_back(mylogger);
 }
