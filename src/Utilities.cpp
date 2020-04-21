@@ -1401,17 +1401,17 @@ int release_mba() {
       //  delta_hp) &&
       //     current_remote_ratio != 0) {
       LINFOF(
-          "SLO violation has been detected (STOP releasing MBA): target: "
-          "%.0lf, current: %.0lf",
-          target_slo, current_latency);
+          "SLO violation has NOT been detected (CONTINUE releasing MBA): "
+          "target: %.0lf, current: %.0lf, slack: %.2lf",
+          target_slo, current_latency, slack);
       optimal_mba = i;
-      break;
     } else {
       LINFOF(
-          "SLO violation has NOT been detected (CONTINUE releasing MBA): "
-          "target: %.0lf, current: %.0lf",
-          target_slo, current_latency);
+          "SLO violation has been detected (STOP releasing MBA): target: "
+          "%.0lf, current: %.0lf, slack: %.2lf",
+          target_slo, current_latency, slack);
       optimal_mba = i;
+      break;
     }
   }
 
