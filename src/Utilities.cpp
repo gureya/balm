@@ -36,6 +36,7 @@ double phase_change = 0.1;    // phase change value
 bool optimization_complete = false;
 bool mba_flag = true;
 int avoid_oversubscription = 0;
+bool violate = false;
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -131,6 +132,7 @@ void abc_numa() {
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
     mba_flag = true;
+    violate = false;
     slack = (target_slo - current_latency) / target_slo;
     // update the BE best stall rate
     //  best_stall_rate.at(BE) =
@@ -149,6 +151,8 @@ void abc_numa() {
           "SLO has been violated (ABOVE operation region) target: %.0lf, "
           "current: %.0lf",
           target_slo, current_latency);*/
+
+      violate = true;
 
       LINFOF(
           "SLO is about to be violated, slack: %.2lf, target: %.0lf, current: "
@@ -185,7 +189,7 @@ void abc_numa() {
       }
       // }
     } else if (slack > slack_down && current_remote_ratio <= 40 &&
-               avoid_oversubscription > 5) {
+               avoid_oversubscription > 5 && !violate) {
       LINFOF(
           "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
           "current: %.0lf, slack: %.2lf",
@@ -1415,8 +1419,8 @@ int release_mba() {
           "%.0lf, current: %.0lf, slack: %.2lf",
           target_slo, current_latency, slack);
       // revert_back to the previous mba
-
-      optimal_mba = i;
+      apply_mba(i - 10);
+      optimal_mba = i - 10;
       break;
     }
   }
