@@ -192,8 +192,8 @@ void abc_numa() {
                avoid_oversubscription > 5 && !violate) {
       LINFOF(
           "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
-          "current: %.0lf, slack: %.2lf",
-          target_slo, current_latency, slack);
+          "current: %.0lf, slack: %.2lf, violate: %d",
+          target_slo, current_latency, slack, violate);
       current_remote_ratio = apply_pagemigration_lr();
       avoid_oversubscription = 0;
     }
