@@ -35,6 +35,7 @@ double noise_allowed = 0.05;  // 5%
 double phase_change = 0.1;    // phase change value
 bool optimization_complete = false;
 bool mba_flag = true;
+int avoid_oversubscription = 0;
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -183,12 +184,14 @@ void abc_numa() {
         LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
       // }
-    } else if (slack > slack_down && current_remote_ratio == 0) {
+    } else if (slack > slack_down && current_remote_ratio <= 40 &&
+               avoid_oversubscription > 5) {
       LINFOF(
           "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
           "current: %.0lf, slack: %.2lf",
           target_slo, current_latency, slack);
       current_remote_ratio = apply_pagemigration_lr();
+      avoid_oversubscription = 0;
     }
 
     /*  else {
@@ -262,6 +265,7 @@ void abc_numa() {
         "slack: %.2lf",
         current_remote_ratio, optimal_mba, current_latency, slack);
     iter++;
+    avoid_oversubscription++;
 
     // print_logs();
     sleep(sleeptime);
@@ -1410,6 +1414,8 @@ int release_mba() {
           "SLO violation has been detected (STOP releasing MBA): target: "
           "%.0lf, current: %.0lf, slack: %.2lf",
           target_slo, current_latency, slack);
+      // revert_back to the previous mba
+
       optimal_mba = i;
       break;
     }
