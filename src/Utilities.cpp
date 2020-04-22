@@ -35,8 +35,6 @@ double noise_allowed = 0.05;  // 5%
 double phase_change = 0.1;    // phase change value
 bool optimization_complete = false;
 bool mba_flag = true;
-int avoid_oversubscription = 0;
-bool violate = false;
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -132,7 +130,7 @@ void abc_numa() {
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
     mba_flag = true;
-    violate = false;
+
     slack = (target_slo - current_latency) / target_slo;
     // update the BE best stall rate
     //  best_stall_rate.at(BE) =
@@ -151,8 +149,6 @@ void abc_numa() {
           "SLO has been violated (ABOVE operation region) target: %.0lf, "
           "current: %.0lf",
           target_slo, current_latency);*/
-
-      violate = true;
 
       LINFOF(
           "SLO is about to be violated, slack: %.2lf, target: %.0lf, current: "
@@ -188,14 +184,12 @@ void abc_numa() {
         LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
       // }
-    } else if (slack > slack_down && current_remote_ratio <= 40 &&
-               avoid_oversubscription > 5 && !violate) {
+    } else if (slack > slack_down && current_remote_ratio < 10) {
       LINFOF(
           "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
-          "current: %.0lf, slack: %.2lf, violate: %d",
-          target_slo, current_latency, slack, violate);
+          "current: %.0lf, slack: %.2lf",
+          target_slo, current_latency, slack);
       current_remote_ratio = apply_pagemigration_lr();
-      avoid_oversubscription = 0;
     }
 
     /*  else {
@@ -269,7 +263,6 @@ void abc_numa() {
         "slack: %.2lf",
         current_remote_ratio, optimal_mba, current_latency, slack);
     iter++;
-    avoid_oversubscription++;
 
     // print_logs();
     sleep(sleeptime);
