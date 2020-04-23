@@ -310,9 +310,9 @@ void page_migration_only() {
       //  delta_hp)) {
       if (current_remote_ratio != 0) {
         LINFOF(
-            "SLO has been violated (ABOVE operation region) target: %.0lf, "
+            "SLO has been violated, slack: %.2lf, target: %.0lf, "
             "current: %.0lf",
-            target_slo, current_latency);
+            slack, target_slo, current_latency);
 
         // apply page migration
         LINFO("------------------------------------------------------");
@@ -391,8 +391,10 @@ void page_migration_only() {
       optimization_complete = true;*/
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
-    LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
-           optimal_mba);
+    LINFOF(
+        "current_remote_ratio: %d, optimal_mba: %d, current_latency: %.0lf, "
+        "slack: %.2lf",
+        current_remote_ratio, optimal_mba, current_latency, slack);
     iter++;
 
     // print_logs();
@@ -586,9 +588,10 @@ void mba_10() {
       // if (current_latency != 0 && current_latency > target_slo * (1 +
       // delta_hp)) {
       LINFOF(
-          "SLO has been violated (ABOVE operation region) target: %.0lf, "
+          "SLO has been violated (ABOVE operation region) slack: %.2lf, "
+          "target: %.0lf, "
           "current: %.0lf",
-          target_slo, current_latency);
+          slack, target_slo, current_latency);
 
       if (current_remote_ratio != 0) {
         // Enforce MBA of 10
@@ -667,8 +670,10 @@ void mba_10() {
       optimization_complete = true;*/
 
     LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
-    LINFOF("current_remote_ratio: %d, optimal_mba: %d", current_remote_ratio,
-           optimal_mba);
+    LINFOF(
+        "current_remote_ratio: %d, optimal_mba: %d, current_latency: %.0lf, "
+        "slack: %.2lf",
+        current_remote_ratio, optimal_mba, current_latency, slack);
     iter++;
 
     // print_logs();
