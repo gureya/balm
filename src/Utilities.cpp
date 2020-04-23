@@ -53,7 +53,7 @@ double slack;
 std::vector<MyLogger> my_logs;
 
 static int run = 1;
-//static int sleeptime = 1;
+// static int sleeptime = 1;
 useconds_t sleeptime = 500000;
 
 enum { BE = 0, HP };
@@ -792,6 +792,7 @@ void linux_default() {
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
+    slack = (target_slo - current_latency) / target_slo;
 
     LINFOF(
         "target(HP): %.0lf, current(HP): %.0lf, BE current: %.10lf, HP "
@@ -806,7 +807,7 @@ void linux_default() {
     iter++;
 
     // print_logs();
-    sleep(sleeptime);
+    usleep(sleeptime);
   }
 }
 
