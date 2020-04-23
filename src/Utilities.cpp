@@ -34,7 +34,6 @@ useconds_t _poll_sleep = 200000;
 double noise_allowed = 0.05;  // 5%
 double phase_change = 0.1;    // phase change value
 bool optimization_complete = false;
-bool mba_flag = true;
 ////////////////////////////////////////////
 
 /////////////////////////////////////////////
@@ -45,7 +44,7 @@ std::vector<double> best_stall_rate(active_cpus);
 double current_latency;
 
 // started using slack variable for now!
-double slack_up = 0.05;
+double slack_up = -0.05;
 double slack_down = 0.2;
 double slack;
 /////////////////////////////////////////////
@@ -129,8 +128,6 @@ void abc_numa() {
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
-    mba_flag = true;
-
     slack = (target_slo - current_latency) / target_slo;
     // update the BE best stall rate
     //  best_stall_rate.at(BE) =
@@ -163,19 +160,28 @@ void abc_numa() {
         optimal_mba = 10;
         // sleep for 1 sec
         sleep(sleeptime);
+        // log the measurements for the debugging purposes!
+        current_latency = get_percentile_latency();
+        slack = (target_slo - current_latency) / target_slo;
+
+        std::string my_action = "apply_mba-" + std::to_string(10);
+        my_logger(chrono::system_clock::now(), current_remote_ratio,
+                  optimal_mba, target_slo, current_latency, slack,
+                  stall_rate.at(HP), stall_rate.at(BE), my_action);
         // Enforce Lazy Page migration while releasing MBA
-        while (mba_flag) {
-          // while (optimal_mba != 100) {
-          // apply page migration
+        //  while (mba_flag) {
+        // while (optimal_mba != 100) {
+        // apply page migration if mba_10 didn't fix the violation
+        if (slack < slack_up) {
           LINFO("------------------------------------------------------");
           current_remote_ratio = apply_pagemigration_rl();
-          // release MBA, only if we are below the operation region
-          if (slack > slack_down) {
-            LINFO("------------------------------------------------------");
-            optimal_mba = release_mba();
-            mba_flag = false;
-          }
         }
+        // release MBA, only if we are below the operation region
+        if (slack > slack_down) {
+          LINFO("------------------------------------------------------");
+          optimal_mba = release_mba();
+        }
+        // }
 
       } else {
         LINFO(
@@ -184,13 +190,13 @@ void abc_numa() {
         LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
       // }
-    } else if (slack > slack_down && current_remote_ratio < 10) {
+    } /*else if (slack > slack_down && current_remote_ratio < 10) {
       LINFOF(
           "SLO has NOT been violated (BELOW operation region) target: %.0lf, "
           "current: %.0lf, slack: %.2lf",
           target_slo, current_latency, slack);
       current_remote_ratio = apply_pagemigration_lr();
-    }
+    }*/
 
     /*  else {
         LINFOF(
@@ -992,7 +998,7 @@ int apply_pagemigration_rl() {
       }*/
 
     // check if to use the slack_up or slack_down functions!
-    if (slack > slack_down) {
+    if (slack > slack_up) {
       // if (current_latency <= target_slo * (1 + delta_hp)) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.0lf, "
