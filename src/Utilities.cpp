@@ -293,6 +293,7 @@ void page_migration_only() {
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
+    slack = (target_slo - current_latency) / target_slo;
 
     // update the BE best stall rate
     // best_stall_rate.at(BE) =
@@ -304,7 +305,9 @@ void page_migration_only() {
               target_slo, current_latency, slack, stall_rate.at(HP),
               stall_rate.at(BE), my_action);
 
-    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
+    if (slack < slack_up) {
+      //  if (current_latency != 0 && current_latency > target_slo * (1 +
+      //  delta_hp)) {
       if (current_remote_ratio != 0) {
         LINFOF(
             "SLO has been violated (ABOVE operation region) target: %.0lf, "
@@ -567,6 +570,7 @@ void mba_10() {
 
     // Measure the 99th percentile of the HP application
     current_latency = get_percentile_latency();
+    slack = (target_slo - current_latency) / target_slo;
 
     // update the BE best stall rate
     //  best_stall_rate.at(BE) =
@@ -578,7 +582,9 @@ void mba_10() {
               target_slo, current_latency, slack, stall_rate.at(HP),
               stall_rate.at(BE), my_action);
 
-    if (current_latency != 0 && current_latency > target_slo * (1 + delta_hp)) {
+    if (slack < slack_up) {
+      // if (current_latency != 0 && current_latency > target_slo * (1 +
+      // delta_hp)) {
       LINFOF(
           "SLO has been violated (ABOVE operation region) target: %.0lf, "
           "current: %.0lf",
@@ -1414,7 +1420,8 @@ int release_mba() {
       optimal_mba = i;
     } else {
       LINFOF(
-          "SLO violation has been detected (STOP releasing MBA): target: "
+          "SLO violation has been detected (STOP releasing MBA and "
+          "revert-back): target: "
           "%.0lf, current: %.0lf, slack: %.2lf",
           target_slo, current_latency, slack);
       // revert_back to the previous mba
