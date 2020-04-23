@@ -164,7 +164,7 @@ void abc_numa() {
         current_latency = get_percentile_latency();
         slack = (target_slo - current_latency) / target_slo;
 
-        std::string my_action = "apply_mba-" + std::to_string(10);
+        my_action = "apply_mba-" + std::to_string(10);
         my_logger(chrono::system_clock::now(), current_remote_ratio,
                   optimal_mba, target_slo, current_latency, slack,
                   stall_rate.at(HP), stall_rate.at(BE), my_action);
