@@ -594,7 +594,7 @@ void mba_10() {
           "current: %.0lf",
           slack, target_slo, current_latency);
 
-      if (current_remote_ratio != 0) {
+      if (current_remote_ratio != 0 && optimal_mba != 10) {
         // Enforce MBA of 10
         LINFO("------------------------------------------------------");
         apply_mba(10);
