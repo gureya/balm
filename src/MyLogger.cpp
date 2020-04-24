@@ -9,7 +9,7 @@
 
 MyLogger::MyLogger(std::chrono::system_clock::time_point tn, int crr, int cml,
                    double hpt, double hcl, double slk, double hps, double bes,
-                   std::string act) {
+                   std::string act, int lc) {
   timenow = tn;
   current_remote_ratio = crr;
   current_mba_level = cml;

@@ -58,7 +58,7 @@ void bw_manager_test(void);
 void find_optimal_lr_ratio(void);
 void my_logger(std::chrono::system_clock::time_point tn, int crr, int cml,
                double hpt, double hcl, double slk, double hps, double bes,
-               std::string);
+               std::string, int lc);
 void test_fixed_ratio(void);
 void print_logs(void);
 void print_logs_v2(void);
