@@ -11,6 +11,7 @@
 #include <string>
 
 #include "include/Logger.hpp"
+#include "include/MbaHandler.hpp"
 #include "include/MySharedMemory.hpp"
 #include "include/PagePlacement.hpp"
 #include "include/PerformanceCounters.hpp"
@@ -244,6 +245,9 @@ int main(int argc, const char *argv[]) {
   // get_sum_nww_ww(BWMAN_WORKERS);
   // initialize likwid
   initialize_likwid();
+
+  // initialize mba
+  initialize_mba();
 
   is_initialized = true;
   LDEBUG("Initialized");

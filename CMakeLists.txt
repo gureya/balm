@@ -37,4 +37,5 @@ target_link_libraries(BwManager
   ${Boost_LIBRARIES}
 	numa
 	likwid
+	pqos
 )

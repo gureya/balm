@@ -9,6 +9,7 @@
 
 #include "include/BwManager.hpp"
 #include "include/Logger.hpp"
+#include "include/MbaHandler.hpp"
 #include "include/MyLogger.hpp"
 #include "include/MySharedMemory.hpp"
 #include "include/PagePlacement.hpp"
@@ -1450,9 +1451,18 @@ int release_mba() {
  */
 void apply_mba(int mba_value) {
   LINFOF("Applying MBA of %d", mba_value);
-  char buf[32];
+  /*char buf[32];
   sprintf(buf, "sudo pqos -e 'mba@0:0=%d'", mba_value);
-  system(buf);
+  system(buf); */
+  // use cos 0 and socket 0
+  // TODO: specify this as parameters
+  set_mba_parameters(0, mba_value);
+  int ret = set_mba_allocation(0);
+  if (ret < 0) {
+    LINFO("Allocation configuration error!");
+    exit(EXIT_FAILURE);
+  }
+  LINFO("Allocation configuration altered.");
 }
 
 /*
