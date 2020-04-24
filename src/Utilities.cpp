@@ -1558,12 +1558,14 @@ void print_logs() {
          << (int)my_logs.at(j).HPA_currency_latency << "\t"
          << my_logs.at(j).HPA_slack << "\t" << my_logs.at(j).HPA_stall_rate
          << "\t" << my_logs.at(j).BEA_stall_rate << "\t" << my_logs.at(j).action
-         << endl;
+         << "\t" << my_logs.at(j).logCounter << endl;
   }
 }
 
 void print_logs_v2() {
   cout << "time (sec)"
+       << "\t"
+       << "Counter"
        << "\t"
        << "QoS" << endl;
 
