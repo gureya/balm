@@ -1,3 +1,5 @@
+#include <sys/types.h>
+#include <ctype.h>
 /*
  * translates definition of single
  * allocation class of service
