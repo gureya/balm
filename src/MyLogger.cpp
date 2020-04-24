@@ -19,4 +19,5 @@ MyLogger::MyLogger(std::chrono::system_clock::time_point tn, int crr, int cml,
   HPA_stall_rate = hps;
   BEA_stall_rate = bes;
   action = act;
+  logCounter = lc;
 }
