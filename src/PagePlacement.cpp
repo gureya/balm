@@ -5,16 +5,17 @@
  *      Author: David Daharewa Gureya
  */
 
-#include "include/BwManager.hpp"
 #include "include/PagePlacement.hpp"
+
+#include <numeric>  //vector sum
+
+#include "include/BwManager.hpp"
 #include "include/Logger.hpp"
 
-#include <numeric> //vector sum
-
 static int pagesize;
-//bool weight_initialized = false;
+// bool weight_initialized = false;
 
-//temporary vector of weights initialized to zero
+// temporary vector of weights initialized to zero
 std::vector<std::pair<double, int>> BWMAN_WEIGHTS_temp(MAX_NODES,
                                                        std::make_pair(0, 0));
 
@@ -28,9 +29,9 @@ int check_sum(std::vector<std::pair<double, int>> n) {
   return std::lround(sum);
 }
 
-// Calculate the new weights with respect to the new ratio (not considering sum_ww & sum_nww)!
+// Calculate the new weights with respect to the new ratio (not considering
+// sum_ww & sum_nww)!
 void get_new_weights_v2(double s) {
-
   int i = 0;
   double sum = 0;
 
@@ -51,13 +52,12 @@ void get_new_weights_v2(double s) {
         break;
       default:
         LINFOF("Sorry, %d Worker nodes is not supported at the moment!\n",
-               BWMAN_WORKERS)
-        ;
+               BWMAN_WORKERS);
         exit(-1);
     }
   }
 
-  //sort the vector in ascending order just incase it gets unordered
+  // sort the vector in ascending order just incase it gets unordered
   sort(BWMAN_WEIGHTS_temp.begin(), BWMAN_WEIGHTS_temp.end());
 
   printf("%.2f\n", sum);
@@ -76,12 +76,12 @@ void get_new_weights_v2(double s) {
   }
 
   printf(
-      "===========================================================================\n");
+      "========================================================================"
+      "===\n");
 }
 
 // Calculate the new weights with respect to the new ratio!
 void get_new_weights(double s) {
-
   int i = 0;
   double new_s = 0;
   new_s = sum_ww + s;
@@ -97,73 +97,82 @@ void get_new_weights(double s) {
             BWMAN_WEIGHTS_temp.at(i).first = round(s);
           } else {
             BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-            BWMAN_WEIGHTS_temp.at(i).first = round(
-                (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+            BWMAN_WEIGHTS_temp.at(i).first =
+                round((BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
           }
 
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first = round(
-              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first =
+              round((BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) *
+                    10) /
+              10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
       case 2:
         // workers: 0, 1
-        if (BWMAN_WEIGHTS.at(i).second == 0
-            || BWMAN_WEIGHTS.at(i).second == 1) {
+        if (BWMAN_WEIGHTS.at(i).second == 0 ||
+            BWMAN_WEIGHTS.at(i).second == 1) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first = round(
-              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first =
+              round((BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first = round(
-              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first =
+              round((BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) *
+                    10) /
+              10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
       case 3:
         // workers: 1,2,3
-        if (BWMAN_WEIGHTS.at(i).second == 1 || BWMAN_WEIGHTS.at(i).second == 2
-            || BWMAN_WEIGHTS.at(i).second == 3) {
+        if (BWMAN_WEIGHTS.at(i).second == 1 ||
+            BWMAN_WEIGHTS.at(i).second == 2 ||
+            BWMAN_WEIGHTS.at(i).second == 3) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first = round(
-              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first =
+              round((BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first = round(
-              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first =
+              round((BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) *
+                    10) /
+              10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
       case 4:
         // workers: 0,1,2,3
-        if (BWMAN_WEIGHTS.at(i).second == 0 || BWMAN_WEIGHTS.at(i).second == 1
-            || BWMAN_WEIGHTS.at(i).second == 2
-            || BWMAN_WEIGHTS.at(i).second == 3) {
+        if (BWMAN_WEIGHTS.at(i).second == 0 ||
+            BWMAN_WEIGHTS.at(i).second == 1 ||
+            BWMAN_WEIGHTS.at(i).second == 2 ||
+            BWMAN_WEIGHTS.at(i).second == 3) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first = round(
-              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first =
+              round((BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first = round(
-              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first =
+              round((BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) *
+                    10) /
+              10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
       default:
         LINFOF("Sorry, %d Worker nodes is not supported at the moment!\n",
-               BWMAN_WORKERS)
-        ;
+               BWMAN_WORKERS);
         exit(-1);
     }
   }
 
-  //sort the vector in ascending order just incase it gets unordered
+  // sort the vector in ascending order just incase it gets unordered
   sort(BWMAN_WEIGHTS_temp.begin(), BWMAN_WEIGHTS_temp.end());
 
   /*printf("%.2f\n", sum);
@@ -185,10 +194,9 @@ void get_new_weights(double s) {
    "===========================================================================\n");*/
 }
 
-//debugging function
+// debugging function
 void get_node_mappings(int page_count, int *nodes) {
-
-  //Test weights are reflected on the node mappings!
+  // Test weights are reflected on the node mappings!
   std::vector<int> node_count(MAX_NODES, 0);
   int i;
   for (i = 0; i < page_count; i++) {
@@ -218,16 +226,15 @@ void get_node_mappings(int page_count, int *nodes) {
   printf("Total pages: %d\n", sum_of_elems);
   double sum = 0.0;
   for (i = 0; i < MAX_NODES; i++) {
-    double weight = (((double) node_count.at(i) / (double) sum_of_elems) * 100);
+    double weight = (((double)node_count.at(i) / (double)sum_of_elems) * 100);
     printf("Node %d count %d Weight %.2f\n", i, node_count.at(i), weight);
     sum += weight;
   }
   printf("Total Weight: %.2f\n", sum);
-
 }
 
 void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
-  //get_new_weights(r);
+  // get_new_weights(r);
   get_new_weights_v2(r);
 #pragma omp parallel for
   for (size_t i = 0; i < mem_segments.size(); i++) {
@@ -235,10 +242,10 @@ void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
                       mem_segments.at(i).pageAlignedStartAddress,
                       mem_segments.at(i).pageAlignedLength, r);
   }
-  //weight_initialized = false;
+  // weight_initialized = false;
 }
 
-//initial page placement with weighted interleave
+// initial page placement with weighted interleave
 /*void place_all_pages(std::vector<MySharedMemory> mem_segments) {
  for (size_t i = 0; i < mem_segments.size(); i++) {
  move_pages_remote(mem_segments.at(i).processID,
@@ -248,7 +255,8 @@ void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
  }*
 
  //place pages with the move_pages system call
- //courtesy: https://stackoverflow.com/questions/10989169/numa-memory-page-migration-overhead/11148999
+ //courtesy:
+ https://stackoverflow.com/questions/10989169/numa-memory-page-migration-overhead/11148999
  void move_pages_remote(pid_t pid, void *start, unsigned long len,
  double remote_ratio) {
 
@@ -292,12 +300,9 @@ void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
  //uniform distribution memory allocation (using the bwap style format)
  if (remote_ratio <= 50) {
  interleaved_pages = (remote_ratio / 100 * (double) page_count) * MAX_NODES;
- //LINFOF("page_count:%d interleaved_pages:%d", page_count, (int) interleaved_pages);
- for (i = 0; i < page_count; ++i) {
- addr[i] = pages + i * pagesize;
- if (i < interleaved_pages) {
- if (i % 2 == 0) {
- nodes[i] = local_node;
+ //LINFOF("page_count:%d interleaved_pages:%d", page_count, (int)
+ interleaved_pages); for (i = 0; i < page_count; ++i) { addr[i] = pages + i *
+ pagesize; if (i < interleaved_pages) { if (i % 2 == 0) { nodes[i] = local_node;
  } else {
  nodes[i] = remote_node;
  }
@@ -310,12 +315,9 @@ void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
  } else {
  interleaved_pages = ((100 - remote_ratio) / 100 * (double) page_count)
  * MAX_NODES;
- //LINFOF("page_count:%d interleaved_pages:%d", page_count, (int) interleaved_pages);
- for (i = 0; i < page_count; ++i) {
- addr[i] = pages + i * pagesize;
- if (i < interleaved_pages) {
- if (i % 2 == 0) {
- nodes[i] = local_node;
+ //LINFOF("page_count:%d interleaved_pages:%d", page_count, (int)
+ interleaved_pages); for (i = 0; i < page_count; ++i) { addr[i] = pages + i *
+ pagesize; if (i < interleaved_pages) { if (i % 2 == 0) { nodes[i] = local_node;
  } else {
  nodes[i] = remote_node;
  }
@@ -337,10 +339,9 @@ void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
  free(nodes);
  }*/
 
-//initial page placement with weighted interleave
+// initial page placement with weighted interleave
 void move_pages_remote(pid_t pid, void *start, unsigned long len,
                        double remote_ratio) {
-
   pagesize = numa_pagesize();
 
   char *pages;
@@ -353,41 +354,41 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
 
   int page_count = len / pagesize;
 
-  addr = (void **) malloc(sizeof(char *) * page_count);
-  status = (int *) malloc(page_count * sizeof(int *));
-  nodes = (int *) malloc(page_count * sizeof(int *));
+  addr = (void **)malloc(sizeof(char *) * page_count);
+  status = (int *)malloc(page_count * sizeof(int *));
+  nodes = (int *)malloc(page_count * sizeof(int *));
 
   if (!start || !addr || !status || !nodes) {
     LINFO("Unable to allocate memory");
     exit(1);
   }
 
-  pages = (char *) start;
+  pages = (char *)start;
 
-  //uniform distribution memory allocation (using the bwap style format)
-  //first set the page addresses, openmp for faster processing
-//#pragma omp parallel for firstprivate(pages,pagesize)
+  // uniform distribution memory allocation (using the bwap style format)
+  // first set the page addresses, openmp for faster processing
+  //#pragma omp parallel for firstprivate(pages,pagesize)
   for (i = 0; i < page_count; i++) {
     addr[i] = pages + i * pagesize;
-    nodes[i] = 0;  //incase the last page is not initialized
+    nodes[i] = 0;  // incase the last page is not initialized
   }
 
-  //set the page distribution using a weighted version
-  double i_p;  //interleaved_pages
-  double w = 0;  // weight that has already been allocated among the nodes that can still receive pages
+  // set the page distribution using a weighted version
+  double i_p;    // interleaved_pages
+  double w = 0;  // weight that has already been allocated among the nodes that
+                 // can still receive pages
   int a = MAX_NODES;  // number of nodes which can still receive pages
-  int i_k = 0;  //lower_bound for the pages
-  int r_pages = 0;  //remaining pages
-  int my_node;  //the node of a page
+  int i_k = 0;        // lower_bound for the pages
+  int r_pages = 0;    // remaining pages
+  int my_node;        // the node of a page
 
-  //create a vector of node id's
+  // create a vector of node id's
   std::vector<int> node_ids;
   for (i = 0; i < MAX_NODES; i++) {
     node_ids.push_back(BWMAN_WEIGHTS_temp.at(i).second);
   }
 
   for (i = 0; i < MAX_NODES; i++) {
-
     double b = BWMAN_WEIGHTS_temp.at(i).first - w;
     i_p = a * (b / 100) * page_count;
 
@@ -410,7 +411,7 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
 
     if (i_p != 0) {
       int upper_bound = i_k + i_p;
-//#pragma omp parallel for firstprivate(my_node,a)
+      //#pragma omp parallel for firstprivate(my_node,a)
       for (j = i_k; j < upper_bound; j++) {
         my_node = j % a;
         nodes[j] = node_ids.at(my_node);
@@ -421,7 +422,6 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
     a--;
     w = BWMAN_WEIGHTS_temp.at(i).first;
     i_k += i_p;
-
   }
 
   /*for (i = 0; i < page_count; i++) {
@@ -435,15 +435,15 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
    }
    }*/
 
-  //get_node_mappings(page_count, nodes);
+  // get_node_mappings(page_count, nodes);
   rc = move_pages(pid, page_count, addr, nodes, status, MPOL_MF_MOVE);
   if (rc < 0 && errno != ENOENT) {
     perror("move_pages");
-    exit(1);
+    // exit(EXIT_FAILURE);
+    std::terminate();
   }
 
   free(addr);
   free(status);
   free(nodes);
 }
-
