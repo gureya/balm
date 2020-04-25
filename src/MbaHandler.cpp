@@ -81,9 +81,10 @@ void set_mba_parameters(const unsigned cos_value, const uint64_t mba_value) {
 void reset_mba() {
   /* reset and deallocate all the resources */
   ret = pqos_fini();
-  if (ret != PQOS_RETVAL_OK)
+  if (ret != PQOS_RETVAL_OK) {
     LINFO("Error shutting down PQoS library!");
-  else
+  } else {
     LINFO("Success shutting down PQoS library");
+  }
   if (p_mba_ids != NULL) free(p_mba_ids);
 }
