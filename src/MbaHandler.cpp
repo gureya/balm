@@ -52,7 +52,7 @@ void initialize_mba() {
   /* Get CPU mba_id information to set COS */
   p_mba_ids = pqos_cpu_get_mba_ids(p_cpu, &mba_id_count);
   if (p_mba_ids == NULL) {
-    LINFO("Error retrieving MBA ID information!\n");
+    LINFO("Error retrieving MBA ID information!");
     exit(EXIT_FAILURE);
   }
 
@@ -65,7 +65,7 @@ int set_mba_allocation(const unsigned socket_id) {
     LINFO("Failed to set MBA!");
     return -1;
   }
-  LINFOF("SKT%u: MBA COS%u => %u%% requested, %u%% applied\n", socket_id,
+  LINFOF("SKT%u: MBA COS%u => %u%% requested, %u%% applied", socket_id,
          mba[REQUESTED].class_id, mba[REQUESTED].mb_max, mba[ACTUAL].mb_max);
 
   return sel_mba_cos_num;
@@ -81,6 +81,9 @@ void set_mba_parameters(const unsigned cos_value, const uint64_t mba_value) {
 void reset_mba() {
   /* reset and deallocate all the resources */
   ret = pqos_fini();
-  if (ret != PQOS_RETVAL_OK) LINFO("Error shutting down PQoS library!\n");
+  if (ret != PQOS_RETVAL_OK)
+    LINFO("Error shutting down PQoS library!");
+  else
+    LINFO("Success shutting down PQoS library");
   if (p_mba_ids != NULL) free(p_mba_ids);
 }

@@ -52,6 +52,7 @@ int apply_pagemigration_lr_dc(void);
 void get_memory_segments(void);
 
 void signalHandler(int signum);
+void terminateHandler(void);
 
 // test functions
 void bw_manager_test(void);

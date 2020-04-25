@@ -229,7 +229,9 @@ void start_bw_manager() {
 
 int main(int argc, const char *argv[]) {
   // register signal SIGINT and signal handler
+  // and also a terminate handler incase we terminate midway
   signal(SIGINT, signalHandler);
+  std::set_terminate(terminateHandler);
 
   // parse and display the configuration
   read_config(argc, argv);

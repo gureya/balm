@@ -68,10 +68,24 @@ void signalHandler(int signum) {
   // terminate program
   destroy_shared_memory();
   stop_all_counters();
+  reset_mba();
   print_logs();
   print_logs_v2();
   run = 0;
   exit(signum);
+}
+
+void terminateHandler() {
+  LINFO("Terminate signal received!");
+  // cleanup and close up stuff here
+  // terminate program
+  destroy_shared_memory();
+  stop_all_counters();
+  reset_mba();
+  print_logs();
+  print_logs_v2();
+  run = 0;
+  exit(EXIT_FAILURE);
 }
 
 unsigned long time_diff(struct timeval* start, struct timeval* stop) {
