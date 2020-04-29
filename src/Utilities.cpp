@@ -55,7 +55,7 @@ std::vector<MyLogger> my_logs;
 
 static int run = 1;
 // static int sleeptime = 1;
-useconds_t sleeptime = 200000;
+useconds_t sleeptime = 100000;
 int logCounter = 0;
 
 enum { BE = 0, HP };
@@ -69,7 +69,7 @@ void signalHandler(int signum) {
   destroy_shared_memory();
   stop_all_counters();
   reset_mba();
-  print_logs();
+  //print_logs();
   print_logs_v2();
   run = 0;
   exit(signum);
@@ -82,7 +82,7 @@ void terminateHandler() {
   destroy_shared_memory();
   stop_all_counters();
   reset_mba();
-  print_logs();
+  //print_logs();
   print_logs_v2();
   run = 0;
   exit(EXIT_FAILURE);

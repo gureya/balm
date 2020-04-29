@@ -47,9 +47,18 @@ int client(std::string host, int port) {
   // return 0;
 }
 
+unsigned long time_diff(struct timeval *start, struct timeval *stop) {
+        unsigned long sec_res = stop->tv_sec - start->tv_sec;
+        unsigned long usec_res = stop->tv_usec - start->tv_usec;
+        return 1000000 * sec_res + usec_res;
+}
+
 int main(int argc, char* argv[]) {
   std::string host;
   int port;
+
+  struct timeval tstart, tend;
+  unsigned long length;
 
   if (argc != 3) {
     std::cerr << "Usage: client <host> <port>" << std::endl;
@@ -60,8 +69,12 @@ int main(int argc, char* argv[]) {
   port = std::stoi(argv[2]);
 
   while (true) {
+    gettimeofday(&tstart, NULL);
     client(host, port);
-    sleep(1);
+    gettimeofday(&tend, NULL);
+    length = time_diff(&tstart, &tend);
+    std::cout << "This call took: " << (length) << " us" << std::endl;
+    usleep(400000);
   }
 
   return 0;
