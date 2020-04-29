@@ -69,8 +69,9 @@ void signalHandler(int signum) {
   destroy_shared_memory();
   stop_all_counters();
   reset_mba();
-  //print_logs();
+  // print_logs();
   print_logs_v2();
+  print_to_file();
   run = 0;
   exit(signum);
 }
@@ -82,8 +83,9 @@ void terminateHandler() {
   destroy_shared_memory();
   stop_all_counters();
   reset_mba();
-  //print_logs();
+  // print_logs();
   print_logs_v2();
+  print_to_file();
   run = 0;
   exit(EXIT_FAILURE);
 }
@@ -1605,6 +1607,13 @@ void print_logs_v2() {
 
     cout << (now_c - start_c) << "\t" << my_logs.at(j).logCounter << "\t"
          << (int)my_logs.at(j).HPA_currency_latency << endl;
+  }
+}
+
+void print_to_file() {
+  FILE* f = fopen("abc_numa_log.txt", "a");
+  for (size_t j = 0; j < my_logs.size(); j++) {
+    fprintf(f, "%d\n", (int)my_logs.at(j).HPA_currency_latency);
   }
 }
 

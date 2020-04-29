@@ -63,5 +63,6 @@ void my_logger(std::chrono::system_clock::time_point tn, int crr, int cml,
 void test_fixed_ratio(void);
 void print_logs(void);
 void print_logs_v2(void);
+void print_to_file(void);
 
 #endif /* INCLUDE_UTILITIES_HPP_ */
