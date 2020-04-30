@@ -874,7 +874,7 @@ double get_target_stall_rate() {
 double get_percentile_latency() {
   double service_time;
 
-  LINFO("Getting the current percentile latency for the HP");
+  // LINFO("Getting the current percentile latency for the HP");
 
   // poll the latency of the applications
   service_time = connect_to_client();
@@ -892,7 +892,7 @@ double connect_to_client() {
     tcp::socket socket(io_service);
 
     // connection
-    std::cout << "[Client] Connecting to server..." << std::endl;
+    // std::cout << "[Client] Connecting to server..." << std::endl;
     socket.connect(
         tcp::endpoint(boost::asio::ip::address::from_string(server), port),
         error);
@@ -1050,7 +1050,9 @@ int apply_pagemigration_rl() {
     }
   }
 
-  LINFOF("Current remote ratio: %d", current_remote_ratio);
+  LINFOF(
+      "Current remote ratio: %d, Optimal mba: %d, latency: %.0lf, slack: %.2lf",
+      current_remote_ratio, optimal_mba, current_latency, slack);
   return current_remote_ratio;
 }
 
@@ -1411,7 +1413,11 @@ int release_mba() {
 
     optimal_mba = 100;
 
-    LINFOF("Optimal MBA: %d", optimal_mba);
+    // LINFOF("Optimal MBA: %d", optimal_mba);
+    LINFOF(
+        "Current remote ratio: %d, Optimal mba: %d, latency: %.0lf, slack: "
+        "%.2lf",
+        current_remote_ratio, optimal_mba, current_latency, slack);
     return optimal_mba;
   }
 
@@ -1460,7 +1466,11 @@ int release_mba() {
     }
   }
 
-  LINFOF("Optimal MBA: %d", optimal_mba);
+  // LINFOF("Optimal MBA: %d", optimal_mba);
+  LINFOF(
+      "Current remote ratio: %d, Optimal mba: %d, latency: %.0lf, slack: %.2lf",
+      current_remote_ratio, optimal_mba, current_latency, slack);
+
   return optimal_mba;
 }
 
