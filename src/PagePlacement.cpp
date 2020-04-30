@@ -236,7 +236,7 @@ void get_node_mappings(int page_count, int *nodes) {
 void place_all_pages(std::vector<MySharedMemory> mem_segments, double r) {
   // get_new_weights(r);
   get_new_weights_v2(r);
-#pragma omp parallel for
+//#pragma omp parallel for
   for (size_t i = 0; i < mem_segments.size(); i++) {
     move_pages_remote(mem_segments.at(i).processID,
                       mem_segments.at(i).pageAlignedStartAddress,

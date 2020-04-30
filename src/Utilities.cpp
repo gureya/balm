@@ -55,7 +55,7 @@ std::vector<MyLogger> my_logs;
 
 static int run = 1;
 // static int sleeptime = 1;
-useconds_t sleeptime = 100000;
+useconds_t sleeptime = 20000;
 int logCounter = 0;
 
 enum { BE = 0, HP };
@@ -69,9 +69,9 @@ void signalHandler(int signum) {
   destroy_shared_memory();
   stop_all_counters();
   reset_mba();
-  // print_logs();
-  print_logs_v2();
-  print_to_file();
+// print_logs();
+print_logs_v2();
+print_to_file();
   run = 0;
   exit(signum);
 }
@@ -1611,10 +1611,12 @@ void print_logs_v2() {
 }
 
 void print_to_file() {
-  FILE* f = fopen("abc_numa_log.txt", "a");
+  FILE* f = fopen("abc_numa_log.txt", "w");
   for (size_t j = 0; j < my_logs.size(); j++) {
     fprintf(f, "%d\n", (int)my_logs.at(j).HPA_currency_latency);
   }
+  /* close the file*/
+   fclose(f);
 }
 
 /*
