@@ -69,9 +69,9 @@ void signalHandler(int signum) {
   destroy_shared_memory();
   stop_all_counters();
   reset_mba();
-// print_logs();
-print_logs_v2();
-print_to_file();
+  // print_logs();
+  print_logs_v2();
+  print_to_file();
   run = 0;
   exit(signum);
 }
@@ -104,6 +104,7 @@ int iter = 0;
 
 void get_memory_segments() {
   // First read the memory segments to be moved
+  LINFO("Waiting for the memory segments from BE");
   mem_segments = get_shared_memory();
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
@@ -134,12 +135,13 @@ void get_memory_segments() {
  *
  */
 void abc_numa() {
+  LINFOF("Monitoring period: %d ms", sleeptime);
   while (run) {
     // TODO: this can be inside the loop or outside the loop!
     // TODO: Define the operation region of the controller
-    LINFO("======================================================");
-    LINFOF("Starting a new iteration: %d", iter);
-    LINFO("------------------------------------------------------");
+    // LINFO("======================================================");
+    // LINFOF("Starting a new iteration: %d", iter);
+    // LINFO("------------------------------------------------------");
 
     // Measure the stall_rate of the applications
     // stall_rate =
@@ -283,11 +285,10 @@ void abc_numa() {
       LINFO("OPTIMIZATION COMPLETED!");
       optimization_complete = true;*/
 
-    LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
-    LINFOF(
-        "current_remote_ratio: %d, optimal_mba: %d, current_latency: %.0lf, "
-        "slack: %.2lf",
-        current_remote_ratio, optimal_mba, current_latency, slack);
+    // LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
+    // LINFOF("current_remote_ratio: %d, optimal_mba: %d, current_latency:
+    // %.0lf, slack: %.2lf", current_remote_ratio, optimal_mba, current_latency,
+    // slack);
     iter++;
 
     // print_logs();
@@ -300,12 +301,13 @@ void abc_numa() {
  *
  */
 void page_migration_only() {
+  LINFOF("Monitoring period: %d ms", sleeptime);
   while (run) {
     // TODO: this can be inside the loop or outside the loop!
     // TODO: Define the operation region of the controller
-    LINFO("======================================================");
-    LINFOF("Starting a new iteration: %d", iter);
-    LINFO("------------------------------------------------------");
+    // LINFO("======================================================");
+    // LINFOF("Starting a new iteration: %d", iter);
+    // LINFO("------------------------------------------------------");
 
     // Measure the stall_rate of the applications
     // stall_rate =
@@ -410,11 +412,10 @@ void page_migration_only() {
       LINFO("OPTIMIZATION COMPLETED!");
       optimization_complete = true;*/
 
-    LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
-    LINFOF(
-        "current_remote_ratio: %d, optimal_mba: %d, current_latency: %.0lf, "
-        "slack: %.2lf",
-        current_remote_ratio, optimal_mba, current_latency, slack);
+    /*  LINFOF("End of iteration: %d, sleeping for %d seconds", iter,
+      sleeptime); LINFOF( "current_remote_ratio: %d, optimal_mba: %d,
+      current_latency: %.0lf, " "slack: %.2lf", current_remote_ratio,
+      optimal_mba, current_latency, slack);*/
     iter++;
 
     // print_logs();
@@ -579,12 +580,13 @@ void mba_only() {
  * minimum MBA = 10
  */
 void mba_10() {
+  LINFOF("Monitoring period: %d ms", sleeptime);
   while (run) {
     // TODO: this can be inside the loop or outside the loop!
     // TODO: Define the operation region of the controller
-    LINFO("======================================================");
-    LINFOF("Starting a new iteration: %d", iter);
-    LINFO("------------------------------------------------------");
+    // LINFO("======================================================");
+    // LINFOF("Starting a new iteration: %d", iter);
+    // LINFO("------------------------------------------------------");
 
     // Measure the stall_rate of the applications
     //  stall_rate =
@@ -689,11 +691,11 @@ void mba_10() {
       LINFO("OPTIMIZATION COMPLETED!");
       optimization_complete = true;*/
 
-    LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
-    LINFOF(
-        "current_remote_ratio: %d, optimal_mba: %d, current_latency: %.0lf, "
-        "slack: %.2lf",
-        current_remote_ratio, optimal_mba, current_latency, slack);
+    /* LINFOF("End of iteration: %d, sleeping for %d seconds", iter, sleeptime);
+     LINFOF(
+         "current_remote_ratio: %d, optimal_mba: %d, current_latency: %.0lf, "
+         "slack: %.2lf",
+         current_remote_ratio, optimal_mba, current_latency, slack);*/
     iter++;
 
     // print_logs();
@@ -800,10 +802,11 @@ void disabled_controller() {
  *
  */
 void linux_default() {
+  LINFOF("Monitoring period: %d ms", sleeptime);
   while (run) {
-    LINFO("======================================================");
-    LINFOF("Starting a new iteration: %d", iter);
-    LINFO("------------------------------------------------------");
+    // LINFO("======================================================");
+    // LINFOF("Starting a new iteration: %d", iter);
+    // LINFO("------------------------------------------------------");
 
     // Measure the stall_rate of the applications
     // stall_rate =
@@ -813,10 +816,10 @@ void linux_default() {
     current_latency = get_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;
 
-    LINFOF(
-        "target(HP): %.0lf, current(HP): %.0lf, BE current: %.10lf, HP "
-        "current: %.10lf",
-        target_slo, current_latency, stall_rate.at(BE), stall_rate.at(HP));
+    /*  LINFOF(
+          "target(HP): %.0lf, current(HP): %.0lf, BE current: %.10lf, HP "
+          "current: %.10lf",
+          target_slo, current_latency, stall_rate.at(BE), stall_rate.at(HP));*/
 
     std::string my_action = "iter-" + std::to_string(iter);
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
@@ -1616,7 +1619,7 @@ void print_to_file() {
     fprintf(f, "%d\n", (int)my_logs.at(j).HPA_currency_latency);
   }
   /* close the file*/
-   fclose(f);
+  fclose(f);
 }
 
 /*
