@@ -871,7 +871,7 @@ double get_target_stall_rate() {
  * Measure the latency of the HPA application
  *
  */
-double get_percentile_latency() {
+/*double get_percentile_latency() {
   double service_time;
 
   // LINFO("Getting the current percentile latency for the HP");
@@ -880,9 +880,9 @@ double get_percentile_latency() {
   service_time = connect_to_client();
 
   return service_time;
-}
+}*/
 
-double connect_to_client() {
+double get_percentile_latency() {
   double service_time = 0;
 
   try {

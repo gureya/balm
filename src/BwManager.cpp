@@ -186,7 +186,14 @@ void read_config(int argc, const char *argv[]) {
 }
 
 void start_bw_manager() {
-  // First read the memory segments to be moved
+  // first make sure the sliding window has been set
+  double cl = 0;
+  LINFO("Setting up the sliding window");
+  while (cl <= 33) {
+    cl = get_percentile_latency();
+  }
+  LINFO("Sliding window has been set up!");
+  // second read the memory segments to be moved
   // if (bwman_mode_value != 3) {
   get_memory_segments();
   //}
