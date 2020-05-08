@@ -55,7 +55,7 @@ std::vector<MyLogger> my_logs;
 
 static int run = 1;
 // static int sleeptime = 1;
-useconds_t sleeptime = 20000;
+useconds_t sleeptime = 200000;
 int logCounter = 0;
 
 enum { BE = 0, HP };

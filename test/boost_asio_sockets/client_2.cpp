@@ -10,19 +10,21 @@
 
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
 #include <iostream>
 
 using boost::asio::ip::tcp;
 
-int client(std::string host, int port) {
-  try {
+double get_percentile_latency(std::string host, int port) {
+   double service_time = 0;
+   try {
     // socket creation
     boost::system::error_code error;
     boost::asio::io_service io_service;
     tcp::socket socket(io_service);
 
     // connection
-    std::cout << "[Client] Connecting to server...: ";
+    // std::cout << "[Client] Connecting to server...: ";
     socket.connect(
         tcp::endpoint(boost::asio::ip::address::from_string(host), port),
         error);
@@ -37,14 +39,16 @@ int client(std::string host, int port) {
     } else if (error)
       throw boost::system::system_error(error);  // Some other error.
 
-    std::cout.write(buf.data(), len);
-    std::cout << std::endl;
+    //std::cout.write(buf.data(), len);
+    //std::cout << std::endl;
+    std::string my_string(buf.begin(), len);
+    service_time = boost::lexical_cast<double>(my_string);
 
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
   }
 
-  // return 0;
+  return service_time;
 }
 
 unsigned long time_diff(struct timeval *start, struct timeval *stop) {
@@ -67,14 +71,20 @@ int main(int argc, char* argv[]) {
 
   host = argv[1];
   port = std::stoi(argv[2]);
+  double current_latency = 0;
+  int i = 0;
 
   while (true) {
-    gettimeofday(&tstart, NULL);
-    client(host, port);
-    gettimeofday(&tend, NULL);
-    length = time_diff(&tstart, &tend);
-    std::cout << "This call took: " << (length) << " us" << std::endl;
-    usleep(400000);
+    //gettimeofday(&tstart, NULL);
+    current_latency = get_percentile_latency(host, port);
+    if(current_latency > 33){
+    std::cout << i << "\t" << current_latency << std::endl;
+    //gettimeofday(&tend, NULL);
+    //length = time_diff(&tstart, &tend);
+    //std::cout << "This call took: " << (length) << " us" << std::endl;
+    usleep(200000);
+    i++;
+    }
   }
 
   return 0;
