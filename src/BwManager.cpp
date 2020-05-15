@@ -72,7 +72,7 @@ void read_config(int argc, const char *argv[]) {
         "BWMAN_CORES,d",
         value<std::string>(&monitored_cores_s)->default_value("0,10"),
         "bwman monitored cores")(
-        "TARGET_SLO,t", value<double>(&target_slo)->default_value(1000),
+        "TARGET_SLO,t", value<double>(&target_slo)->default_value(600),
         "target slo (99th percentile (usec))")(
         "TCP_SERVER,s",
         value<std::string>(&server)->default_value("146.193.41.51"),

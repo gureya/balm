@@ -45,7 +45,7 @@ std::vector<double> best_stall_rate(active_cpus);
 double current_latency;
 
 // started using slack variable for now!
-double slack_up = -0.1;
+double slack_up = 0.05;
 double slack_down = 0.2;
 double slack;
 /////////////////////////////////////////////
@@ -104,7 +104,7 @@ int iter = 0;
 
 void get_memory_segments() {
   // First read the memory segments to be moved
-  LINFO("Waiting for the memory segments from BE");
+ /* LINFO("Waiting for the memory segments from BE");
   mem_segments = get_shared_memory();
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
@@ -115,7 +115,7 @@ void get_memory_segments() {
     destroy_shared_memory();
     stop_all_counters();
     exit(EXIT_FAILURE);
-  }
+  }*/
 
   // Initialize the best and previuos stall rates
   int i;
@@ -180,7 +180,8 @@ void abc_numa() {
         apply_mba(10);
         optimal_mba = 10;
         // sleep for 1 sec
-        usleep(sleeptime);
+        // usleep(sleeptime);
+	// sleep(1)
         // log the measurements for the debugging purposes!
         current_latency = get_percentile_latency();
         slack = (target_slo - current_latency) / target_slo;
@@ -1012,7 +1013,7 @@ int apply_pagemigration_rl() {
     // sleep for 100ms
     // usleep(100000);
     // sleep for 1 sec
-    usleep(sleeptime);
+    // usleep(sleeptime);
     // Measure the current latency measurement
     current_latency = get_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;

@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
     //gettimeofday(&tend, NULL);
     //length = time_diff(&tstart, &tend);
     //std::cout << "This call took: " << (length) << " us" << std::endl;
-    usleep(200000);
+    usleep(60000);
     i++;
     }
   }
