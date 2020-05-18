@@ -24,6 +24,8 @@
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <thread>
+
 using boost::asio::ip::tcp;
 
 /////////////////////////////////////////////
@@ -940,7 +942,7 @@ void measurement_collector() {
   double cpl = 0;
   while (run) {
     cpl = get_percentile_latency();
-    percentile_samples.push_back(cl);
+    percentile_samples.push_back(cpl);
     if (((target_slo - cpl) / target_slo) < slack_up) {
       violations_counter++;
     }
@@ -948,7 +950,8 @@ void measurement_collector() {
   }
 }
 
-double get_latest_percentile_latency() { return percentile_samples.back(); }
+double get_latest_percentile_latency() { if(!percentile_samples.empty()){return percentile_samples.back();}
+	else {return 0;}}
 
 /*
  * Search the highest MBA that still meets the target SLO
@@ -1629,7 +1632,7 @@ void print_logs() {
 }
 
 void print_logs_v2() {
-  cout << "time (sec)"
+  /*cout << "time (sec)"
        << "\t"
        << "Counter"
        << "\t"
@@ -1647,7 +1650,7 @@ void print_logs_v2() {
 
     cout << (now_c - start_c) << "\t" << my_logs.at(j).logCounter << "\t"
          << (int)my_logs.at(j).HPA_currency_latency << endl;
-  }
+  }*/
   cout << "Total violations\t" << violations_counter << endl;
 }
 
@@ -1655,7 +1658,7 @@ void print_to_file() {
   FILE* f = fopen("abc_numa_log.txt", "w");
   for (size_t j = 0; j < percentile_samples.size(); j++) {
     // fprintf(f, "%d\n", (int)my_logs.at(j).HPA_currency_latency);
-    fprintf(f, "%d\t%d\n", j, (int)percentile_samples.at(j));
+    fprintf(f, "%d\t%d\n", (int)j, (int)percentile_samples.at(j));
   }
   /* close the file*/
   fclose(f);

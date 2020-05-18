@@ -3,7 +3,7 @@ trap "kill 0" EXIT
 
 BWAP_WEIGHTS=/home/dgureya/bwap/weights/weights_1w.txt /usr/bin/time -f%e numactl --physcpubind=1-9 --membind=0 /home/dgureya/adaptive_bw_bench/adaptive_bw_bench -c 1-9 -s 1 -p 16 -t 1 -y 300 -z 2800 &
 
-numactl --physcpubind=0 /home/dgureya/numa-bw-manager/BwManager -s 146.193.41.52 -r 30 -m 3 
+numactl --physcpubind=0,20 /home/dgureya/numa-bw-manager/BwManager -s 146.193.41.52 -r 40 -m 1 
 
 #BWAP_WEIGHTS=/home/dgureya/bwap/weights/weights_1w.txt /usr/bin/time -f%e numactl --physcpubind=0-8 --membind=0 /home/dgureya/adaptive_bw_bench/adaptive_bw_bench -c 0-8 -s 1 -p 16 -t 1 -y 300 -z 2800
 
