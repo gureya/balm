@@ -23,7 +23,6 @@
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
-
 #include <thread>
 
 using boost::asio::ip::tcp;
@@ -108,18 +107,18 @@ int iter = 0;
 
 void get_memory_segments() {
   // First read the memory segments to be moved
-  /* LINFO("Waiting for the memory segments from BE");
-   mem_segments = get_shared_memory();
+  LINFO("Waiting for the memory segments from BE");
+  mem_segments = get_shared_memory();
 
-   LINFOF("Number of Segments: %lu", mem_segments.size());
+  LINFOF("Number of Segments: %lu", mem_segments.size());
 
-   // some sanity check
-   if (mem_segments.size() == 0) {
-     LINFO("No segments found! Exiting");
-     destroy_shared_memory();
-     stop_all_counters();
-     exit(EXIT_FAILURE);
-   }*/
+  // some sanity check
+  if (mem_segments.size() == 0) {
+    LINFO("No segments found! Exiting");
+    destroy_shared_memory();
+    stop_all_counters();
+    exit(EXIT_FAILURE);
+  }
 
   // Initialize the best and previuos stall rates
   int i;
@@ -950,8 +949,13 @@ void measurement_collector() {
   }
 }
 
-double get_latest_percentile_latency() { if(!percentile_samples.empty()){return percentile_samples.back();}
-	else {return 0;}}
+double get_latest_percentile_latency() {
+  if (!percentile_samples.empty()) {
+    return percentile_samples.back();
+  } else {
+    return 0;
+  }
+}
 
 /*
  * Search the highest MBA that still meets the target SLO
