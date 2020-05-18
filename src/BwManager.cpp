@@ -65,17 +65,17 @@ void read_config(int argc, const char *argv[]) {
         "name of the configuration file")(
         "BWMAN_MODE,m", value<int>(&bwman_mode_value)->default_value(0),
         "bwman mode value, 0=abc-numa, 1=pm-only, 2=mba-only, 3=linux-default, "
-        "4=disabled-controller, 5=mba-10, 6=test")(
+        "4=mba-10, 5=test")(
         "BWMAN_WEIGHTS,w",
         value<std::string>(&weights)->default_value("weights/weights_1w.txt"),
         "weights of BE application")(
         "BWMAN_CORES,d",
         value<std::string>(&monitored_cores_s)->default_value("0,10"),
         "bwman monitored cores")(
-        "TARGET_SLO,t", value<double>(&target_slo)->default_value(600),
+        "TARGET_SLO,t", value<double>(&target_slo)->default_value(1000),
         "target slo (99th percentile (usec))")(
         "TCP_SERVER,s",
-        value<std::string>(&server)->default_value("146.193.41.51"),
+        value<std::string>(&server)->default_value("146.193.41.52"),
         "tcp server for latency measurements")(
         "PORT,p", value<int>(&port)->default_value(1234), "tcp server port")(
         "REMOTE_RATIO,r", value<int>(&current_remote_ratio)->default_value(0),
@@ -193,7 +193,10 @@ void start_bw_manager() {
     cl = get_percentile_latency();
   }
   LINFO("Sliding window has been set up!");
-  // second read the memory segments to be moved
+  // second start the measurements thread
+  spawn_measurement_thread();
+  LINFO("Measurements thread has been spawned!");
+  // third read the memory segments to be moved
   // if (bwman_mode_value != 3) {
   get_memory_segments();
   //}
@@ -216,14 +219,10 @@ void start_bw_manager() {
       linux_default();
       break;
     case 4:
-      LINFO("Running the disable-controller mode!");
-      disabled_controller();
-      break;
-    case 5:
       LINFO("Running the mba_10 mode!");
       mba_10();
       break;
-    case 6:
+    case 5:
       LINFO("Running the abc-numa test mode!");
       bw_manager_test();
       break;

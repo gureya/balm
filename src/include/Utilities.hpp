@@ -17,19 +17,14 @@
 #include "include/MySharedMemory.hpp"
 
 void read_weights(std::string filename);
-void get_sum_nww_ww(int num_workers);
-
-void hill_climbing_pmigration(void);
-void hill_climbing_mba(void);
-void hill_climbing_mba_10(void);
-void hill_climbing_pmigration_100(void);
-void hill_climbing_mba_sha(void);
-void hill_climbing_pmigration_v2(void);
 
 // Measurement functions
 double get_target_stall_rate();
 double get_percentile_latency();
-double connect_to_client();
+
+void measurement_collector(void);
+double get_latest_percentile_latency(void);
+void spawn_measurement_thread(void);
 
 // Important Modes
 void abc_numa(void);  // the overall solution i.e., page migration + mba
@@ -37,7 +32,6 @@ void page_migration_only(void);
 void mba_only(void);
 void linux_default(void);
 void mba_10(void);
-void disabled_controller(void);
 
 // Important Functionalities
 void apply_mba(int mba_value);
