@@ -79,11 +79,17 @@ int main(int argc, char* argv[]) {
     // gettimeofday(&tstart, NULL);
     current_latency = get_percentile_latency(host, port);
     if (current_latency > 33) {
+	    /*if (current_latency > 1100){
+		    std::cout << i << "\t" << current_latency << std::endl;
+		    std::cout << "violation encountered" << std::endl;
+		   break;
+	    }*/
       std::cout << i << "\t" << current_latency << std::endl;
       // gettimeofday(&tend, NULL);
       // length = time_diff(&tstart, &tend);
       // std::cout << "This call took: " << (length) << " us" << std::endl;
-      usleep(60000);
+      usleep(20000);
+      //sleep(1);
       i++;
     }
   }

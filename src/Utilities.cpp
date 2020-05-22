@@ -49,7 +49,7 @@ double current_latency;
 
 // started using slack variable for now!
 double slack_up = 0.05;
-double slack_down = 0.2;
+double slack_down = 0.5;
 double slack;
 /////////////////////////////////////////////
 
@@ -58,7 +58,7 @@ std::vector<MyLogger> my_logs;
 
 static int run = 1;
 // static int sleeptime = 1;
-useconds_t sleeptime = 200000;
+useconds_t sleeptime = 100000;
 int logCounter = 0;
 
 enum { BE = 0, HP };
@@ -182,9 +182,10 @@ void abc_numa() {
         // optimal_mba = search_optimal_mba();
         apply_mba(10);
         optimal_mba = 10;
+	sleep(3);
         // sleep for 1 sec
         // usleep(sleeptime);
-        // sleep(1)
+        // usleep(500000);
         // log the measurements for the debugging purposes!
         current_latency = get_latest_percentile_latency();
         slack = (target_slo - current_latency) / target_slo;
@@ -623,6 +624,7 @@ void mba_10() {
         // Enforce MBA of 10
         LINFO("------------------------------------------------------");
         apply_mba(10);
+	sleep(2);
         optimal_mba = 10;
       } else {
         LINFO(
@@ -1046,6 +1048,7 @@ int apply_pagemigration_rl() {
     // sleep for 100ms
     // usleep(100000);
     // sleep for 1 sec
+    sleep(3);
     // usleep(sleeptime);
     // Measure the current latency measurement
     current_latency = get_latest_percentile_latency();
@@ -1431,6 +1434,7 @@ int release_mba() {
     // sleep for 100ms
     // usleep(100000);
     // sleep for 1 sec
+    sleep(3);
     // usleep(sleeptime);
     // Measure the stall_rate of the applications
     // stall_rate =
@@ -1462,6 +1466,7 @@ int release_mba() {
 
     // sleep for 100ms
     // usleep(100000);
+    sleep(3);
     // sleep for 1 sec
     // usleep(sleeptime);
     // Measure the stall_rate of the applications
