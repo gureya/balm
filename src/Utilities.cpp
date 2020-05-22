@@ -44,7 +44,8 @@ std::vector<double> stall_rate(active_cpus);
 std::vector<double> prev_stall_rate(active_cpus);
 std::vector<double> best_stall_rate(active_cpus);
 std::vector<double> percentile_samples;
-int violations_counter = 0;
+int violations_counter_f = 0;
+int violations_counter_t = 0;
 double current_latency;
 
 // started using slack variable for now!
@@ -182,7 +183,7 @@ void abc_numa() {
         // optimal_mba = search_optimal_mba();
         apply_mba(10);
         optimal_mba = 10;
-	sleep(3);
+        sleep(3);
         // sleep for 1 sec
         // usleep(sleeptime);
         // usleep(500000);
@@ -624,7 +625,7 @@ void mba_10() {
         // Enforce MBA of 10
         LINFO("------------------------------------------------------");
         apply_mba(10);
-	sleep(2);
+        sleep(3);
         optimal_mba = 10;
       } else {
         LINFO(
@@ -945,7 +946,10 @@ void measurement_collector() {
     cpl = get_percentile_latency();
     percentile_samples.push_back(cpl);
     if (((target_slo - cpl) / target_slo) < slack_up) {
-      violations_counter++;
+      violations_counter_f++;
+    }
+    if (cpl > target_slo) {
+      violations_counter_t++;
     }
     usleep(20000);
   }
@@ -1660,7 +1664,10 @@ void print_logs_v2() {
     cout << (now_c - start_c) << "\t" << my_logs.at(j).logCounter << "\t"
          << (int)my_logs.at(j).HPA_currency_latency << endl;
   }*/
-  cout << "Total violations\t" << violations_counter << endl;
+  cout << "Total violations_f:\t" << violations_counter_f << endl;
+  cout << "Total violations_t:\t" << violations_counter_t << endl;
+  cout << "optimal mba:\t" << optimal_mba << "optimal ratio:\t"
+       << current_remote_ratio << endl;
 }
 
 void print_to_file() {
