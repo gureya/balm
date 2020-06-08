@@ -59,7 +59,7 @@ std::vector<MyLogger> my_logs;
 
 static int run = 1;
 // static int sleeptime = 1;
-useconds_t sleeptime = 100000;
+useconds_t sleeptime = 20000;
 int logCounter = 0;
 
 enum { BE = 0, HP };
@@ -181,6 +181,7 @@ void abc_numa() {
         // Enforce MBA
         LINFO("------------------------------------------------------");
         // optimal_mba = search_optimal_mba();
+	if(optimal_mba != 10){
         apply_mba(10);
         optimal_mba = 10;
         sleep(3);
@@ -195,7 +196,7 @@ void abc_numa() {
         my_logger(chrono::system_clock::now(), current_remote_ratio,
                   optimal_mba, target_slo, current_latency, slack,
                   stall_rate.at(HP), stall_rate.at(BE), my_action,
-                  logCounter++);
+                  logCounter++);}
         // Enforce Lazy Page migration while releasing MBA
         //  while (mba_flag) {
         // while (optimal_mba != 100) {
@@ -1666,7 +1667,7 @@ void print_logs_v2() {
   }*/
   cout << "Total violations_f:\t" << violations_counter_f << endl;
   cout << "Total violations_t:\t" << violations_counter_t << endl;
-  cout << "optimal mba:\t" << optimal_mba << "optimal ratio:\t"
+  cout << "optimal mba:\t" << optimal_mba << "\toptimal ratio:\t"
        << current_remote_ratio << endl;
 }
 
