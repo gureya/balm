@@ -181,22 +181,23 @@ void abc_numa() {
         // Enforce MBA
         LINFO("------------------------------------------------------");
         // optimal_mba = search_optimal_mba();
-	if(optimal_mba != 10){
-        apply_mba(10);
-        optimal_mba = 10;
-        sleep(3);
-        // sleep for 1 sec
-        // usleep(sleeptime);
-        // usleep(500000);
-        // log the measurements for the debugging purposes!
-        current_latency = get_latest_percentile_latency();
-        slack = (target_slo - current_latency) / target_slo;
+        if (optimal_mba != 10) {
+          apply_mba(10);
+          optimal_mba = 10;
+          sleep(3);
+          // sleep for 1 sec
+          // usleep(sleeptime);
+          // usleep(500000);
+          // log the measurements for the debugging purposes!
+          current_latency = get_latest_percentile_latency();
+          slack = (target_slo - current_latency) / target_slo;
 
-        my_action = "apply_mba-" + std::to_string(10);
-        my_logger(chrono::system_clock::now(), current_remote_ratio,
-                  optimal_mba, target_slo, current_latency, slack,
-                  stall_rate.at(HP), stall_rate.at(BE), my_action,
-                  logCounter++);}
+          my_action = "apply_mba-" + std::to_string(10);
+          my_logger(chrono::system_clock::now(), current_remote_ratio,
+                    optimal_mba, target_slo, current_latency, slack,
+                    stall_rate.at(HP), stall_rate.at(BE), my_action,
+                    logCounter++);
+        }
         // Enforce Lazy Page migration while releasing MBA
         //  while (mba_flag) {
         // while (optimal_mba != 100) {
