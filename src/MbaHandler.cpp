@@ -80,7 +80,7 @@ void set_mba_parameters(const unsigned cos_value, const uint64_t mba_value) {
 
 void reset_mba() {
   /*set mba back to 100 i.e. default before quitting*/
-  set_mba_parameters(0, 100);
+  set_mba_parameters(1, 100);
   ret = set_mba_allocation(0);
   /* reset and deallocate all the resources */
   ret = pqos_fini();
