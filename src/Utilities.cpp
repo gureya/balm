@@ -50,7 +50,7 @@ double current_latency;
 
 // started using slack variable for now!
 double slack_up = 0.05;
-double slack_down = 0.5;
+double slack_down = 0.3;
 double slack;
 /////////////////////////////////////////////
 
@@ -200,18 +200,18 @@ void abc_numa() {
         }
         // Enforce Lazy Page migration while releasing MBA
         //  while (mba_flag) {
-        // while (optimal_mba != 100) {
+         while (optimal_mba != 100) {
         // apply page migration if mba_10 didn't fix the violation
-        if (slack < slack_up) {
+        //if (slack < slack_up) {
           LINFO("------------------------------------------------------");
           current_remote_ratio = apply_pagemigration_rl();
-        }
+       // }
         // release MBA, only if we are below the operation region
         if (slack > slack_down) {
           LINFO("------------------------------------------------------");
           optimal_mba = release_mba();
         }
-        // }
+         }
 
       } else {
         LINFO(
