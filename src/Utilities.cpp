@@ -50,7 +50,8 @@ double current_latency;
 
 // started using slack variable for now!
 double slack_up = 0.05;
-double slack_down = 0.3;
+double slack_down_mba = 0.2;
+double slack_down_pg = 0.1;
 double slack;
 /////////////////////////////////////////////
 
@@ -112,6 +113,10 @@ void get_memory_segments() {
   mem_segments = get_shared_memory();
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
+  /*sleep(5);
+  LINFO("Enforce initial weighted interleaving for BE if not enforce");
+  place_all_pages(mem_segments, current_remote_ratio);
+  sleep(3);*/
 
   // some sanity check
   if (mem_segments.size() == 0) {
@@ -202,12 +207,12 @@ void abc_numa() {
         //  while (mba_flag) {
          while (optimal_mba != 100) {
         // apply page migration if mba_10 didn't fix the violation
-        //if (slack < slack_up) {
+        //if (slack > slack_down_pg) {
           LINFO("------------------------------------------------------");
           current_remote_ratio = apply_pagemigration_rl();
-       // }
+        //}
         // release MBA, only if we are below the operation region
-        if (slack > slack_down) {
+        if (slack > slack_down_mba) {
           LINFO("------------------------------------------------------");
           optimal_mba = release_mba();
         }
@@ -926,7 +931,8 @@ double get_percentile_latency() {
   } catch (std::exception& e) {
     LINFO("Problem connecting to the client");
     std::cerr << e.what() << std::endl;
-    exit(EXIT_FAILURE);
+    //exit(EXIT_FAILURE);
+    terminateHandler();
   }
 
   return service_time;
@@ -1044,9 +1050,9 @@ int apply_pagemigration_rl() {
   }
 
   for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
-    LINFOF("Going to check a ratio of %d", i);
+    //LINFOF("Going to check a ratio of %d", i);
     place_all_pages(mem_segments, i);
-
+    //break;
     // Measure the stall_rate of the applications
     //  stall_rate =
     //      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
@@ -1076,8 +1082,8 @@ int apply_pagemigration_rl() {
       }*/
 
     // check if to use the slack_up or slack_down functions!
-    if (slack > slack_down) {
-    //if (slack > slack_up) {
+    //if (slack > slack_down_pg) {
+    if (slack > slack_up) {
       // if (current_latency <= target_slo * (1 + delta_hp)) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.0lf, "
@@ -1231,7 +1237,7 @@ int apply_pagemigration_lr() {
         current_remote_ratio = i;
       }
       break;
-    } else if (slack > slack_down) {
+    } else if (slack > slack_down_pg) {
       LINFOF(
           "Below the green region, continue climbing, current: %.0lf, slack: "
           "%.2lf",
@@ -1490,7 +1496,7 @@ int release_mba() {
               my_action, logCounter++);
 
     // only release mba while we are in the green zone!
-    if (slack > slack_down && current_remote_ratio != 0) {
+    if (slack > slack_down_mba && current_remote_ratio != 0) {
       //  if (current_latency != 0 && current_latency > target_slo * (1 +
       //  delta_hp) &&
       //     current_remote_ratio != 0) {
@@ -1575,7 +1581,7 @@ int mba_binary_search(int current_mba, double progress) {
  */
 
 void bw_manager_test() {
-  LINFO("==============================================");
+  /*LINFO("==============================================");
   LINFO("TESTING get_target_stall_rate function");
   LINFO("----------------------------------------------");
   LINFOF("Target SLO at this point: %.0lf", target_slo);
@@ -1598,17 +1604,17 @@ void bw_manager_test() {
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_lr function");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_lr();
+  current_remote_ratio = apply_pagemigration_lr();*/
 
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_rl function");
   LINFO("----------------------------------------------");
   current_remote_ratio = apply_pagemigration_rl();
 
-  LINFO("==============================================");
+  /*LINFO("==============================================");
   LINFO("TESTING release_mba function");
   LINFO("----------------------------------------------");
-  optimal_mba = release_mba();
+  optimal_mba = release_mba();*/
 
   LINFO("==============================================");
   LINFOF("FINAL VALUES: current_optimal_mba: %d, current_remote_ratio: %d",

@@ -187,10 +187,16 @@ void read_config(int argc, const char *argv[]) {
 
 void start_bw_manager() {
   // first make sure the sliding window has been set
-  double cl = 0;
+  double cl = get_percentile_latency();
+  int be_warmup = 0;
   LINFO("Setting up the sliding window");
   while (cl <= 33) {
     cl = get_percentile_latency();
+    be_warmup = 1;
+  }
+  //LINFOF("BE_WARMUP_TIME=%d", be_warmup);
+  if(be_warmup == 0){
+	  //sleep(5); //give the be benchmark some warmup period!
   }
   LINFO("Sliding window has been set up!");
   // second start the measurements thread
