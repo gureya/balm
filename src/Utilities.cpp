@@ -205,18 +205,19 @@ void abc_numa() {
         }
         // Enforce Lazy Page migration while releasing MBA
         //  while (mba_flag) {
-         while (optimal_mba != 100) {
-        // apply page migration if mba_10 didn't fix the violation
-        //if (slack > slack_down_pg) {
+        while (optimal_mba != 100) {
+          // apply page migration if mba_10 didn't fix the violation
+          // if (slack > slack_down_pg) {
           LINFO("------------------------------------------------------");
           current_remote_ratio = apply_pagemigration_rl();
-        //}
-        // release MBA, only if we are below the operation region
-        if (slack > slack_down_mba) {
-          LINFO("------------------------------------------------------");
-          optimal_mba = release_mba();
+          // current_remote_ratio = apply_pagemigration_lr_same_socket();
+          //}
+          // release MBA, only if we are below the operation region
+          if (slack > slack_down_mba) {
+            LINFO("------------------------------------------------------");
+            optimal_mba = release_mba();
+          }
         }
-         }
 
       } else {
         LINFO(
@@ -931,7 +932,7 @@ double get_percentile_latency() {
   } catch (std::exception& e) {
     LINFO("Problem connecting to the client");
     std::cerr << e.what() << std::endl;
-    //exit(EXIT_FAILURE);
+    // exit(EXIT_FAILURE);
     terminateHandler();
   }
 
@@ -1050,9 +1051,9 @@ int apply_pagemigration_rl() {
   }
 
   for (i = current_remote_ratio; i >= 0; i -= ADAPTATION_STEP) {
-    //LINFOF("Going to check a ratio of %d", i);
+    // LINFOF("Going to check a ratio of %d", i);
     place_all_pages(mem_segments, i);
-    //break;
+    // break;
     // Measure the stall_rate of the applications
     //  stall_rate =
     //      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
@@ -1082,7 +1083,77 @@ int apply_pagemigration_rl() {
       }*/
 
     // check if to use the slack_up or slack_down functions!
-    //if (slack > slack_down_pg) {
+    // if (slack > slack_down_pg) {
+    if (slack > slack_up) {
+      // if (current_latency <= target_slo * (1 + delta_hp)) {
+      LINFOF(
+          "SLO has been achieved (STOP page migration): target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
+      current_remote_ratio = i;
+      break;
+    } else {
+      LINFOF(
+          "SLO has NOT been achieved (CONTINUE page migration): target: %.0lf, "
+          "current: %.0lf",
+          target_slo, current_latency);
+      current_remote_ratio = i;
+    }
+  }
+
+  LINFOF(
+      "Current remote ratio: %d, Optimal mba: %d, latency: %.0lf, slack: %.2lf",
+      current_remote_ratio, optimal_mba, current_latency, slack);
+  return current_remote_ratio;
+}
+
+/*
+ * Fix SLO violations by moving pages from local to remote node
+ * This function assumes that SLO violations are due to memory bandwidth
+ * contention in the same socket
+ */
+
+int apply_pagemigration_lr_same_socket() {
+  int i;
+  // apply the next ratio immediately
+  if (current_remote_ratio < 100) {
+    current_remote_ratio += ADAPTATION_STEP;
+  }
+
+  for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
+    // LINFOF("Going to check a ratio of %d", i);
+    place_all_pages(mem_segments, i);
+    // break;
+    // Measure the stall_rate of the applications
+    //  stall_rate =
+    //      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
+
+    // sleep for 100ms
+    // usleep(100000);
+    // sleep for 1 sec
+    sleep(3);
+    // usleep(sleeptime);
+    // Measure the current latency measurement
+    current_latency = get_latest_percentile_latency();
+    slack = (target_slo - current_latency) / target_slo;
+    // update the BE best stall rate
+    // best_stall_rate.at(BE) =
+    //    std::min(best_stall_rate.at(BE), stall_rate.at(BE));
+
+    std::string my_action = "apply_ratio-" + std::to_string(i);
+    my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
+              target_slo, current_latency, slack, stall_rate.at(HP),
+              stall_rate.at(BE), my_action, logCounter++);
+
+    // sanity check
+    /*  if (current_latency == 0) {
+        LINFOF(
+            "NAN HP latency (STOP page migration): target: %.0lf, current:
+      %.0lf", target_slo, current_latency); current_remote_ratio = i; break;
+      }*/
+
+    // check if to use the slack_up or slack_down functions!
+    // if (slack > slack_down_pg) {
     if (slack > slack_up) {
       // if (current_latency <= target_slo * (1 + delta_hp)) {
       LINFOF(
@@ -1606,10 +1677,15 @@ void bw_manager_test() {
   LINFO("----------------------------------------------");
   current_remote_ratio = apply_pagemigration_lr();*/
 
-  LINFO("==============================================");
+  /*LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_rl function");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_rl();
+  current_remote_ratio = apply_pagemigration_rl();*/
+
+  LINFO("==============================================");
+  LINFO("TESTING apply_pagemigration_lr_same_socket function");
+  LINFO("----------------------------------------------");
+  current_remote_ratio = apply_pagemigration_lr_same_socket();
 
   /*LINFO("==============================================");
   LINFO("TESTING release_mba function");

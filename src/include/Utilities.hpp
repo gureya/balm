@@ -44,6 +44,7 @@ int check_opt_direction(void);
 int release_mba(void);
 int apply_pagemigration_lr_dc(void);
 void get_memory_segments(void);
+int apply_pagemigration_lr_same_socket(void);
 
 void signalHandler(int signum);
 void terminateHandler(void);

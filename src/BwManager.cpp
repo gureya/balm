@@ -194,9 +194,9 @@ void start_bw_manager() {
     cl = get_percentile_latency();
     be_warmup = 1;
   }
-  //LINFOF("BE_WARMUP_TIME=%d", be_warmup);
-  if(be_warmup == 0){
-	  //sleep(5); //give the be benchmark some warmup period!
+  // LINFOF("BE_WARMUP_TIME=%d", be_warmup);
+  if (be_warmup == 0) {
+    // sleep(5); //give the be benchmark some warmup period!
   }
   LINFO("Sliding window has been set up!");
   // second start the measurements thread
