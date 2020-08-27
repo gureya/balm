@@ -208,9 +208,9 @@ void abc_numa() {
         while (optimal_mba != 100) {
           // apply page migration if mba_10 didn't fix the violation
           // if (slack > slack_down_pg) {
-          LINFO("------------------------------------------------------");
-          current_remote_ratio = apply_pagemigration_rl();
-          // current_remote_ratio = apply_pagemigration_lr_same_socket();
+          //LINFO("------------------------------------------------------");
+          // current_remote_ratio = apply_pagemigration_rl();
+             current_remote_ratio = apply_pagemigration_lr_same_socket();
           //}
           // release MBA, only if we are below the operation region
           if (slack > slack_down_mba) {
@@ -344,7 +344,8 @@ void page_migration_only() {
     if (slack < slack_up) {
       //  if (current_latency != 0 && current_latency > target_slo * (1 +
       //  delta_hp)) {
-      if (current_remote_ratio != 0) {
+      if (current_remote_ratio != 100){
+      //if (current_remote_ratio != 0) {
         LINFOF(
             "SLO has been violated, slack: %.2lf, target: %.0lf, "
             "current: %.0lf",
@@ -352,12 +353,13 @@ void page_migration_only() {
 
         // apply page migration
         LINFO("------------------------------------------------------");
-        current_remote_ratio = apply_pagemigration_rl();
+        //current_remote_ratio = apply_pagemigration_rl();
+	current_remote_ratio = apply_pagemigration_lr_same_socket();
       } else {
-        LINFO(
+        /*LINFO(
             "Nothing can be done about SLO violation (Change in workload!), "
             "Find new target SLO!");
-        LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
+        LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);*/
       }
     }
 
@@ -1116,6 +1118,9 @@ int apply_pagemigration_rl() {
 int apply_pagemigration_lr_same_socket() {
   int i;
   // apply the next ratio immediately
+  if (current_remote_ratio == 100){
+	  return current_remote_ratio;
+  }
   if (current_remote_ratio < 100) {
     current_remote_ratio += ADAPTATION_STEP;
   }
@@ -1144,7 +1149,7 @@ int apply_pagemigration_lr_same_socket() {
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
               target_slo, current_latency, slack, stall_rate.at(HP),
               stall_rate.at(BE), my_action, logCounter++);
-
+    
     // sanity check
     /*  if (current_latency == 0) {
         LINFOF(
@@ -1263,7 +1268,7 @@ int apply_pagemigration_lr() {
     current_remote_ratio += ADAPTATION_STEP;
   }
 
-  for (i = current_remote_ratio; i <= 40; i += ADAPTATION_STEP) {
+  for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
     LINFOF("Going to check a ratio of %d", i);
     if (i != 0) {
       place_all_pages(mem_segments, i);
@@ -1273,9 +1278,10 @@ int apply_pagemigration_lr() {
     // stall_rate =
     //     get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
-    sleep(sleeptime);
+    //sleep(sleeptime);
+    sleep(3);
     // Measure the current latency measurement
-    current_latency = get_percentile_latency();
+    /*current_latency = get_percentile_latency();
     // First check if we are violating the SLO
     slack = (target_slo - current_latency) / target_slo;
 
@@ -1321,7 +1327,7 @@ int apply_pagemigration_lr() {
           current_latency, slack);
       current_remote_ratio = i;
       break;
-    }
+    }*/
 
     // then check if there is any performance improvement for BE
     /* else if (my_diff > delta_be || std::isnan(stall_rate.at(BE))) {
@@ -1672,20 +1678,22 @@ void bw_manager_test() {
   LINFO("----------------------------------------------");
   optimal_mba = search_optimal_mba();
 
+  */
+  sleep(10);
   LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_lr function");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_lr();*/
+  current_remote_ratio = apply_pagemigration_lr();
 
   /*LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_rl function");
   LINFO("----------------------------------------------");
   current_remote_ratio = apply_pagemigration_rl();*/
 
-  LINFO("==============================================");
+  /*LINFO("==============================================");
   LINFO("TESTING apply_pagemigration_lr_same_socket function");
   LINFO("----------------------------------------------");
-  current_remote_ratio = apply_pagemigration_lr_same_socket();
+  current_remote_ratio = apply_pagemigration_lr_same_socket();*/
 
   /*LINFO("==============================================");
   LINFO("TESTING release_mba function");
