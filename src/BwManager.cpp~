@@ -67,7 +67,7 @@ void read_config(int argc, const char *argv[]) {
         "bwman mode value, 0=abc-numa, 1=pm-only, 2=mba-only, 3=linux-default, "
         "4=mba-10, 5=test")(
         "BWMAN_WEIGHTS,w",
-        value<std::string>(&weights)->default_value("/home/dgureya/numa-bw-manager/weights/weights_1w.txt"),
+        value<std::string>(&weights)->default_value("weights/weights_1w.txt"),
         "weights of BE application")(
         "BWMAN_CORES,d",
         value<std::string>(&monitored_cores_s)->default_value("0,10"),
@@ -187,7 +187,7 @@ void read_config(int argc, const char *argv[]) {
 
 void start_bw_manager() {
   // first make sure the sliding window has been set
-  double cl = get_percentile_latency();
+/*  double cl = get_percentile_latency();
   int be_warmup = 0;
   LINFO("Setting up the sliding window");
   while (cl <= 33) {
@@ -201,7 +201,7 @@ void start_bw_manager() {
   LINFO("Sliding window has been set up!");
   // second start the measurements thread
   spawn_measurement_thread();
-  LINFO("Measurements thread has been spawned!");
+  LINFO("Measurements thread has been spawned!");*/
   // third read the memory segments to be moved
   // if (bwman_mode_value != 3) {
   get_memory_segments();

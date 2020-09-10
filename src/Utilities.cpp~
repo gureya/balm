@@ -208,7 +208,7 @@ void abc_numa() {
         while (optimal_mba != 100) {
           // apply page migration if mba_10 didn't fix the violation
           // if (slack > slack_down_pg) {
-          //LINFO("------------------------------------------------------");
+          LINFO("------------------------------------------------------");
           // current_remote_ratio = apply_pagemigration_rl();
              current_remote_ratio = apply_pagemigration_lr_same_socket();
           //}
@@ -344,8 +344,7 @@ void page_migration_only() {
     if (slack < slack_up) {
       //  if (current_latency != 0 && current_latency > target_slo * (1 +
       //  delta_hp)) {
-      if (current_remote_ratio != 100){
-      //if (current_remote_ratio != 0) {
+      if (current_remote_ratio != 0) {
         LINFOF(
             "SLO has been violated, slack: %.2lf, target: %.0lf, "
             "current: %.0lf",
@@ -353,13 +352,12 @@ void page_migration_only() {
 
         // apply page migration
         LINFO("------------------------------------------------------");
-        //current_remote_ratio = apply_pagemigration_rl();
-	current_remote_ratio = apply_pagemigration_lr_same_socket();
+        current_remote_ratio = apply_pagemigration_rl();
       } else {
-        /*LINFO(
+        LINFO(
             "Nothing can be done about SLO violation (Change in workload!), "
             "Find new target SLO!");
-        LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);*/
+        LINFOF("target: %.0lf, current: %.0lf", target_slo, current_latency);
       }
     }
 
@@ -1118,9 +1116,6 @@ int apply_pagemigration_rl() {
 int apply_pagemigration_lr_same_socket() {
   int i;
   // apply the next ratio immediately
-  if (current_remote_ratio == 100){
-	  return current_remote_ratio;
-  }
   if (current_remote_ratio < 100) {
     current_remote_ratio += ADAPTATION_STEP;
   }
@@ -1139,7 +1134,7 @@ int apply_pagemigration_lr_same_socket() {
     sleep(3);
     // usleep(sleeptime);
     // Measure the current latency measurement
-    current_latency = get_latest_percentile_latency();
+    /*current_latency = get_latest_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;
     // update the BE best stall rate
     // best_stall_rate.at(BE) =
@@ -1149,7 +1144,7 @@ int apply_pagemigration_lr_same_socket() {
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
               target_slo, current_latency, slack, stall_rate.at(HP),
               stall_rate.at(BE), my_action, logCounter++);
-    
+    */
     // sanity check
     /*  if (current_latency == 0) {
         LINFOF(
@@ -1159,7 +1154,7 @@ int apply_pagemigration_lr_same_socket() {
 
     // check if to use the slack_up or slack_down functions!
     // if (slack > slack_down_pg) {
-    if (slack > slack_up) {
+    /*if (slack > slack_up) {
       // if (current_latency <= target_slo * (1 + delta_hp)) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.0lf, "
@@ -1173,7 +1168,7 @@ int apply_pagemigration_lr_same_socket() {
           "current: %.0lf",
           target_slo, current_latency);
       current_remote_ratio = i;
-    }
+    }*/
   }
 
   LINFOF(
@@ -1761,12 +1756,6 @@ void print_logs_v2() {
   cout << "Total violations_t:\t" << violations_counter_t << endl;
   cout << "optimal mba:\t" << optimal_mba << "\toptimal ratio:\t"
        << current_remote_ratio << endl;
-
-  //print also to a file, use append
-  FILE* f = fopen("abc_numa_results_log.txt", "a");
-  fprintf(f, "v_f:\t%d\tv_t:\t%d\tmba:\t%d\tlrr:\t%d\n", violations_counter_f, violations_counter_t, optimal_mba, current_remote_ratio);
-  // close the file
-  fclose(f);
 }
 
 void print_to_file() {

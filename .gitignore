@@ -188,6 +188,11 @@ test/boost_asio_sockets/server_2
 test/boost_asio_sockets/async_server
 .vs/
 
+#folders
+abc-numa-scripts/
+compute_mem_intensive_app.sh
+run_controller_best_effort.sh
+
 # .txt files
 *.txt
 
