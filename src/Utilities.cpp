@@ -72,7 +72,7 @@ void signalHandler(int signum) {
   // cleanup and close up stuff here
   // terminate program
   destroy_shared_memory();
-  stop_all_counters();
+  //stop_all_counters();
   reset_mba();
   // print_logs();
   print_logs_v2();
@@ -86,7 +86,7 @@ void terminateHandler() {
   // cleanup and close up stuff here
   // terminate program
   destroy_shared_memory();
-  stop_all_counters();
+  //stop_all_counters();
   reset_mba();
   // print_logs();
   print_logs_v2();

@@ -258,7 +258,7 @@ int main(int argc, const char *argv[]) {
   // set sum_ww & sum_nww & initialize the weights!
   // get_sum_nww_ww(BWMAN_WORKERS);
   // initialize likwid
-  initialize_likwid();
+  //initialize_likwid();
 
   // initialize mba
   initialize_mba();
@@ -272,7 +272,7 @@ int main(int argc, const char *argv[]) {
   destroy_shared_memory();
 
   // stop all the counters
-  stop_all_counters();
+  //stop_all_counters();
   LINFO("Finalized");
 
   return 0;

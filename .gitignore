@@ -192,6 +192,7 @@ test/boost_asio_sockets/async_server
 abc-numa-scripts/
 compute_mem_intensive_app.sh
 run_controller_best_effort.sh
+setup-counters-intel.sh
 
 # .txt files
 *.txt
