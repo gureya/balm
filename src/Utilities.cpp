@@ -113,7 +113,7 @@ void get_memory_segments() {
   mem_segments = get_shared_memory();
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
-  /*sleep(5);
+  /*sleep(1);
   LINFO("Enforce initial weighted interleaving for BE if not enforce");
   place_all_pages(mem_segments, current_remote_ratio);
   sleep(3);*/
@@ -182,6 +182,8 @@ void abc_numa() {
           "%.0lf",
           slack, target_slo, current_latency);
 
+      // incase of single-skt check 100 also!
+      //if (current_remote_ratio != 100) {
       if (current_remote_ratio != 0) {
         // Enforce MBA
         LINFO("------------------------------------------------------");
@@ -205,18 +207,37 @@ void abc_numa() {
         }
         // Enforce Lazy Page migration while releasing MBA
         //  while (mba_flag) {
-        while (optimal_mba != 100) {
+        while (optimal_mba != 100) {	
+	  // evaluate SLO function whenever we come back here again!
+          current_latency = get_latest_percentile_latency();
+          slack = (target_slo - current_latency) / target_slo;
           // apply page migration if mba_10 didn't fix the violation
-          // if (slack > slack_down_pg) {
+          //if (slack > slack_down_pg) {
           //LINFO("------------------------------------------------------");
           // current_remote_ratio = apply_pagemigration_rl();
-             current_remote_ratio = apply_pagemigration_lr_same_socket();
+             //current_remote_ratio = apply_pagemigration_lr_same_socket();
           //}
           // release MBA, only if we are below the operation region
           if (slack > slack_down_mba) {
             LINFO("------------------------------------------------------");
             optimal_mba = release_mba();
           }
+	  if (slack > slack_up && slack < slack_down_mba) {
+		  //do nothing, we are in a safe but not in green zone, don't change this config
+	  }
+	  if (slack < slack_up){
+		  //danger zone, apply page migration
+		  if(optimal_mba != 10){
+			  //apply mba_10 immediately
+			  apply_mba(10);
+			  optimal_mba = 10;
+			  sleep(3);
+		  }
+		  else{
+			  current_remote_ratio = apply_pagemigration_lr_same_socket();
+		  }
+	  }
+
         }
 
       } else {
@@ -956,7 +977,7 @@ void measurement_collector() {
   while (run) {
     cpl = get_percentile_latency();
     percentile_samples.push_back(cpl);
-    if (((target_slo - cpl) / target_slo) < slack_up) {
+    if (((target_slo - cpl) / target_slo) <= slack_up) {
       violations_counter_f++;
     }
     if (cpl > target_slo) {
@@ -1268,6 +1289,7 @@ int apply_pagemigration_lr() {
     current_remote_ratio += ADAPTATION_STEP;
   }
 
+  //for (i = 60; i <= 100; i += 10){
   for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
     LINFOF("Going to check a ratio of %d", i);
     if (i != 0) {
@@ -1517,7 +1539,8 @@ int release_mba() {
   // apply the next mba immediately
   optimal_mba += 10;
 
-  // if the current ratio is zero, then apply the max mba immediately
+  // if the current ratio is zero, then apply the max mba immediately incase of multi-socket colocation
+  // or if the current ratio is 100, them apply the max mba immediately incase of single-socket colocation
   if (current_remote_ratio == 0) {
     apply_mba(100);
 
