@@ -67,7 +67,8 @@ void read_config(int argc, const char *argv[]) {
         "bwman mode value, 0=abc-numa, 1=pm-only, 2=mba-only, 3=linux-default, "
         "4=mba-10, 5=test")(
         "BWMAN_WEIGHTS,w",
-        value<std::string>(&weights)->default_value("/home/dgureya/numa-bw-manager/weights/weights_1w.txt"),
+        value<std::string>(&weights)->default_value(
+            "/home/dgureya/numa-bw-manager/weights/weights_1w.txt"),
         "weights of BE application")(
         "BWMAN_CORES,d",
         value<std::string>(&monitored_cores_s)->default_value("0,10"),
@@ -258,7 +259,7 @@ int main(int argc, const char *argv[]) {
   // set sum_ww & sum_nww & initialize the weights!
   // get_sum_nww_ww(BWMAN_WORKERS);
   // initialize likwid
-  //initialize_likwid();
+  // initialize_likwid();
 
   // initialize mba
   initialize_mba();
@@ -272,7 +273,7 @@ int main(int argc, const char *argv[]) {
   destroy_shared_memory();
 
   // stop all the counters
-  //stop_all_counters();
+  // stop_all_counters();
   LINFO("Finalized");
 
   return 0;

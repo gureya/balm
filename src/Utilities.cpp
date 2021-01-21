@@ -72,7 +72,7 @@ void signalHandler(int signum) {
   // cleanup and close up stuff here
   // terminate program
   destroy_shared_memory();
-  //stop_all_counters();
+  // stop_all_counters();
   reset_mba();
   // print_logs();
   print_logs_v2();
@@ -86,7 +86,7 @@ void terminateHandler() {
   // cleanup and close up stuff here
   // terminate program
   destroy_shared_memory();
-  //stop_all_counters();
+  // stop_all_counters();
   reset_mba();
   // print_logs();
   print_logs_v2();
@@ -183,7 +183,7 @@ void abc_numa() {
           slack, target_slo, current_latency);
 
       // incase of single-skt check 100 also!
-      //if (current_remote_ratio != 100) {
+      // if (current_remote_ratio != 100) {
       if (current_remote_ratio != 0) {
         // Enforce MBA
         LINFO("------------------------------------------------------");
@@ -207,37 +207,36 @@ void abc_numa() {
         }
         // Enforce Lazy Page migration while releasing MBA
         //  while (mba_flag) {
-        while (optimal_mba != 100) {	
-	  // evaluate SLO function whenever we come back here again!
+        while (optimal_mba != 100) {
+          // evaluate SLO function whenever we come back here again!
           current_latency = get_latest_percentile_latency();
           slack = (target_slo - current_latency) / target_slo;
           // apply page migration if mba_10 didn't fix the violation
-          //if (slack > slack_down_pg) {
-          //LINFO("------------------------------------------------------");
+          // if (slack > slack_down_pg) {
+          // LINFO("------------------------------------------------------");
           // current_remote_ratio = apply_pagemigration_rl();
-             //current_remote_ratio = apply_pagemigration_lr_same_socket();
+          // current_remote_ratio = apply_pagemigration_lr_same_socket();
           //}
           // release MBA, only if we are below the operation region
           if (slack > slack_down_mba) {
             LINFO("------------------------------------------------------");
             optimal_mba = release_mba();
           }
-	  if (slack > slack_up && slack < slack_down_mba) {
-		  //do nothing, we are in a safe but not in green zone, don't change this config
-	  }
-	  if (slack < slack_up){
-		  //danger zone, apply page migration
-		  if(optimal_mba != 10){
-			  //apply mba_10 immediately
-			  apply_mba(10);
-			  optimal_mba = 10;
-			  sleep(3);
-		  }
-		  else{
-			  current_remote_ratio = apply_pagemigration_lr_same_socket();
-		  }
-	  }
-
+          if (slack > slack_up && slack < slack_down_mba) {
+            // do nothing, we are in a safe but not in green zone, don't change
+            // this config
+          }
+          if (slack < slack_up) {
+            // danger zone, apply page migration
+            if (optimal_mba != 10) {
+              // apply mba_10 immediately
+              apply_mba(10);
+              optimal_mba = 10;
+              sleep(3);
+            } else {
+              current_remote_ratio = apply_pagemigration_lr_same_socket();
+            }
+          }
         }
 
       } else {
@@ -365,8 +364,8 @@ void page_migration_only() {
     if (slack < slack_up) {
       //  if (current_latency != 0 && current_latency > target_slo * (1 +
       //  delta_hp)) {
-      if (current_remote_ratio != 100){
-      //if (current_remote_ratio != 0) {
+      if (current_remote_ratio != 100) {
+        // if (current_remote_ratio != 0) {
         LINFOF(
             "SLO has been violated, slack: %.2lf, target: %.0lf, "
             "current: %.0lf",
@@ -374,8 +373,8 @@ void page_migration_only() {
 
         // apply page migration
         LINFO("------------------------------------------------------");
-        //current_remote_ratio = apply_pagemigration_rl();
-	current_remote_ratio = apply_pagemigration_lr_same_socket();
+        // current_remote_ratio = apply_pagemigration_rl();
+        current_remote_ratio = apply_pagemigration_lr_same_socket();
       } else {
         /*LINFO(
             "Nothing can be done about SLO violation (Change in workload!), "
@@ -1139,8 +1138,8 @@ int apply_pagemigration_rl() {
 int apply_pagemigration_lr_same_socket() {
   int i;
   // apply the next ratio immediately
-  if (current_remote_ratio == 100){
-	  return current_remote_ratio;
+  if (current_remote_ratio == 100) {
+    return current_remote_ratio;
   }
   if (current_remote_ratio < 100) {
     current_remote_ratio += ADAPTATION_STEP;
@@ -1170,7 +1169,7 @@ int apply_pagemigration_lr_same_socket() {
     my_logger(chrono::system_clock::now(), current_remote_ratio, optimal_mba,
               target_slo, current_latency, slack, stall_rate.at(HP),
               stall_rate.at(BE), my_action, logCounter++);
-    
+
     // sanity check
     /*  if (current_latency == 0) {
         LINFOF(
@@ -1289,7 +1288,7 @@ int apply_pagemigration_lr() {
     current_remote_ratio += ADAPTATION_STEP;
   }
 
-  //for (i = 60; i <= 100; i += 10){
+  // for (i = 60; i <= 100; i += 10){
   for (i = current_remote_ratio; i <= 100; i += ADAPTATION_STEP) {
     LINFOF("Going to check a ratio of %d", i);
     if (i != 0) {
@@ -1300,7 +1299,7 @@ int apply_pagemigration_lr() {
     // stall_rate =
     //     get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers);
 
-    //sleep(sleeptime);
+    // sleep(sleeptime);
     sleep(3);
     // Measure the current latency measurement
     /*current_latency = get_percentile_latency();
@@ -1539,8 +1538,9 @@ int release_mba() {
   // apply the next mba immediately
   optimal_mba += 10;
 
-  // if the current ratio is zero, then apply the max mba immediately incase of multi-socket colocation
-  // or if the current ratio is 100, them apply the max mba immediately incase of single-socket colocation
+  // if the current ratio is zero, then apply the max mba immediately incase of
+  // multi-socket colocation or if the current ratio is 100, them apply the max
+  // mba immediately incase of single-socket colocation
   if (current_remote_ratio == 0) {
     apply_mba(100);
 
@@ -1785,9 +1785,10 @@ void print_logs_v2() {
   cout << "optimal mba:\t" << optimal_mba << "\toptimal ratio:\t"
        << current_remote_ratio << endl;
 
-  //print also to a file, use append
+  // print also to a file, use append
   FILE* f = fopen("abc_numa_results_log.txt", "a");
-  fprintf(f, "v_f:\t%d\tv_t:\t%d\tmba:\t%d\tlrr:\t%d\n", violations_counter_f, violations_counter_t, optimal_mba, current_remote_ratio);
+  fprintf(f, "v_f:\t%d\tv_t:\t%d\tmba:\t%d\tlrr:\t%d\n", violations_counter_f,
+          violations_counter_t, optimal_mba, current_remote_ratio);
   // close the file
   fclose(f);
 }
