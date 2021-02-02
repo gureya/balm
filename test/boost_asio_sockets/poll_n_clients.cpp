@@ -99,33 +99,35 @@ unsigned long time_diff(struct timeval* start, struct timeval* stop) {
 
 int main(int argc, char* argv[]) {
   std::string host;
-  int port;
+  int port, port2;
 
   struct timeval tstart, tend;
   unsigned long length;
 
-  if (argc != 3) {
-    std::cerr << "Usage: client <host> <port>" << std::endl;
+  if (argc != 4) {
+    std::cerr << "Usage: ./poll_n_clients <host> <port> <port2>" << std::endl;
+    std::cerr << "Usage: ./poll_n_clients 146.193.41.56 1234 1235" << std::endl;
     return 1;
   }
 
   host = argv[1];
   port = std::stoi(argv[2]);
+  port2 = std::stoi(argv[3]);
   double current_latency[2] = {0, 0};
   int i = 0;
 
   while (true) {
     // gettimeofday(&tstart, NULL);
     current_latency[0] = get_percentile_latency_lca1(host, port);
-    current_latency[1] = get_percentile_latency_lca2(host, port);
+    current_latency[1] = get_percentile_latency_lca2(host, port2);
     if (current_latency[0] > 33 || current_latency[1] > 0) {
       /*if (current_latency > 1100){
               std::cout << i << "\t" << current_latency << std::endl;
               std::cout << "violation encountered" << std::endl;
              break;
       }*/
-      std::cout << i << " lca1: \t" << current_latency[0] << "lca2: \t"
-                << current_latency[1] << std::endl;
+      std::cout << i << " lca1: " << current_latency[0]
+                << "\tlca2: " << current_latency[1] << std::endl;
       // gettimeofday(&tend, NULL);
       // length = time_diff(&tstart, &tend);
       // std::cout << "This call took: " << (length) << " us" << std::endl;
