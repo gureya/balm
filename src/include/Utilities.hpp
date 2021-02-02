@@ -21,6 +21,9 @@ void read_weights(std::string filename);
 // Measurement functions
 double get_target_stall_rate();
 double get_percentile_latency();
+//TODO: refactor this codes!
+double get_latest_percentile_latency_xpn();
+double get_percentile_latency_xpn();
 
 void measurement_collector(void);
 double get_latest_percentile_latency(void);

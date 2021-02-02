@@ -46,13 +46,22 @@ std::vector<double> best_stall_rate(active_cpus);
 std::vector<double> percentile_samples;
 int violations_counter_f = 0;
 int violations_counter_t = 0;
+// same metrics for other xapian - hard-coded for now!
+std::vector<double> percentile_samples_xpn;
+int vlts_cnt_f = 0;
+int vlts_cnt_t = 0;
+// handle multiple LCAs, for now just 2
+// TODO: Make this dynamic
+// 0 - memcache, 1 - xapian
 double current_latency;
+double current_latency_xpn;
 
 // started using slack variable for now!
 double slack_up = 0.05;
 double slack_down_mba = 0.2;
 double slack_down_pg = 0.1;
 double slack;
+double slack_xpn;
 /////////////////////////////////////////////
 
 // For Logging purposes
@@ -159,6 +168,10 @@ void abc_numa() {
     // Measure the 99th percentile of the HP application
     current_latency = get_latest_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;
+
+    // for xapian, TODO: Make this dynamic
+    current_latency_xpn = get_latest_percentile_latency_xpn();
+    slack_xpn = (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
     // update the BE best stall rate
     //  best_stall_rate.at(BE) =
     //      std::min(best_stall_rate.at(BE), stall_rate.at(BE));
@@ -169,7 +182,7 @@ void abc_numa() {
               target_slo, current_latency, slack, stall_rate.at(HP),
               stall_rate.at(BE), my_action, logCounter++);
 
-    if (slack < slack_up) {
+    if (slack < slack_up || slack_xpn < slack_up) {
       /* if (current_latency != 0 && current_latency > target_slo * (1 +
        delta_hp)) {
       LINFOF(
@@ -179,8 +192,9 @@ void abc_numa() {
 
       LINFOF(
           "SLO is about to be violated, slack: %.2lf, target: %.0lf, current: "
-          "%.0lf",
-          slack, target_slo, current_latency);
+          "%.0lf, slack_xpn: %.2lf, target_xpn: %.2lf, current_xpn: %.2lf",
+          slack, target_slo, current_latency, slack_xpn, target_slo_xapian,
+          current_latency_xpn);
 
       // incase of single-skt check 100 also!
       // if (current_remote_ratio != 100) {
@@ -199,6 +213,11 @@ void abc_numa() {
           current_latency = get_latest_percentile_latency();
           slack = (target_slo - current_latency) / target_slo;
 
+          // for xapian, TODO: Make this dynamic
+          current_latency_xpn = get_latest_percentile_latency_xpn();
+          slack_xpn =
+              (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
+
           my_action = "apply_mba-" + std::to_string(10);
           my_logger(chrono::system_clock::now(), current_remote_ratio,
                     optimal_mba, target_slo, current_latency, slack,
@@ -211,6 +230,11 @@ void abc_numa() {
           // evaluate SLO function whenever we come back here again!
           current_latency = get_latest_percentile_latency();
           slack = (target_slo - current_latency) / target_slo;
+
+          // for xapian, TODO: Make this dynamic
+          current_latency_xpn = get_latest_percentile_latency_xpn();
+          slack_xpn =
+              (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
           // apply page migration if mba_10 didn't fix the violation
           // if (slack > slack_down_pg) {
           // LINFO("------------------------------------------------------");
@@ -218,7 +242,7 @@ void abc_numa() {
           // current_remote_ratio = apply_pagemigration_lr_same_socket();
           //}
           // release MBA, only if we are below the operation region
-          if (slack > slack_down_mba) {
+          if (slack > slack_down_mba && slack_xpn > slack_down_mba) {
             LINFO("------------------------------------------------------");
             optimal_mba = release_mba();
           }
@@ -233,6 +257,13 @@ void abc_numa() {
               apply_mba(10);
               optimal_mba = 10;
               sleep(3);
+              // update the latencies
+              current_latency = get_latest_percentile_latency();
+              slack = (target_slo - current_latency) / target_slo;
+              // for xapian, TODO: Make this dynamic
+              current_latency_xpn = get_latest_percentile_latency_xpn();
+              slack_xpn =
+                  (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
             } else {
               current_remote_ratio = apply_pagemigration_lr_same_socket();
             }
@@ -961,6 +992,51 @@ double get_percentile_latency() {
   return service_time;
 }
 
+double get_percentile_latency_xpn() {
+  double service_time = 0;
+  // for now this is hard-coded
+  int port2 = 1235;
+
+  try {
+    // socket creation
+    boost::system::error_code error;
+    boost::asio::io_service io_service;
+    tcp::socket socket(io_service);
+
+    // connection
+    // std::cout << "[Client] Connecting to server..." << std::endl;
+    socket.connect(
+        tcp::endpoint(boost::asio::ip::address::from_string(server), port2),
+        error);
+
+    for (;;) {
+      boost::array<char, 128> buf;
+
+      size_t len = socket.read_some(boost::asio::buffer(buf), error);
+
+      if (error == boost::asio::error::eof)
+        break;  // Connection closed cleanly by peer.
+      else if (error)
+        throw boost::system::system_error(error);  // Some other error.
+
+      std::string my_string(buf.begin(), len);
+      // std::copy(buf.begin(), buf.begin()+len, std::back_inserter(my_string));
+      // std::cout.write(buf.data(), len);
+      // cout << std::endl;
+      // cout << my_string << std::endl;
+      service_time = boost::lexical_cast<double>(my_string);
+      service_time = std::ceil(service_time / 1e6 * 100) / 100;
+    }
+  } catch (std::exception& e) {
+    LINFO("Problem connecting to the client");
+    std::cerr << e.what() << std::endl;
+    // exit(EXIT_FAILURE);
+    terminateHandler();
+  }
+
+  return service_time;
+}
+
 /*
 start the measurement thread!
 */
@@ -973,15 +1049,27 @@ void spawn_measurement_thread() {
 
 void measurement_collector() {
   double cpl = 0;
+  double cpl_xpn = 0;
   while (run) {
     cpl = get_percentile_latency();
+    cpl_xpn = get_percentile_latency_xpn();
     percentile_samples.push_back(cpl);
+    percentile_samples_xpn.push_back(cpl_xpn);
+    // TODO: factor this out!
     if (((target_slo - cpl) / target_slo) <= slack_up) {
       violations_counter_f++;
     }
     if (cpl > target_slo) {
       violations_counter_t++;
     }
+
+    if (((target_slo_xapian - cpl_xpn) / target_slo_xapian) <= slack_up) {
+      vlts_cnt_f++;
+    }
+    if (cpl_xpn > target_slo_xapian) {
+      vlts_cnt_t++;
+    }
+
     usleep(20000);
   }
 }
@@ -989,6 +1077,14 @@ void measurement_collector() {
 double get_latest_percentile_latency() {
   if (!percentile_samples.empty()) {
     return percentile_samples.back();
+  } else {
+    return 0;
+  }
+}
+
+double get_latest_percentile_latency_xpn() {
+  if (!percentile_samples_xpn.empty()) {
+    return percentile_samples_xpn.back();
   } else {
     return 0;
   }
@@ -1161,6 +1257,10 @@ int apply_pagemigration_lr_same_socket() {
     // Measure the current latency measurement
     current_latency = get_latest_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;
+
+    // for xapian, TODO: Make this dynamic
+    current_latency_xpn = get_latest_percentile_latency_xpn();
+    slack_xpn = (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
     // update the BE best stall rate
     // best_stall_rate.at(BE) =
     //    std::min(best_stall_rate.at(BE), stall_rate.at(BE));
@@ -1179,7 +1279,7 @@ int apply_pagemigration_lr_same_socket() {
 
     // check if to use the slack_up or slack_down functions!
     // if (slack > slack_down_pg) {
-    if (slack > slack_up) {
+    if (slack > slack_up || slack_xpn > slack_up) {
       // if (current_latency <= target_slo * (1 + delta_hp)) {
       LINFOF(
           "SLO has been achieved (STOP page migration): target: %.0lf, "
@@ -1557,6 +1657,9 @@ int release_mba() {
     current_latency = get_latest_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;
 
+    current_latency_xpn = get_latest_percentile_latency_xpn();
+    slack_xpn = (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
+
     std::string my_action = "apply_mba-" + std::to_string(100);
     my_logger(chrono::system_clock::now(), current_remote_ratio, 100,
               target_slo, current_latency, slack, stall_rate.at(HP),
@@ -1590,13 +1693,17 @@ int release_mba() {
     current_latency = get_latest_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;
 
+    current_latency_xpn = get_latest_percentile_latency_xpn();
+    slack_xpn = (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
+
     std::string my_action = "apply_mba-" + std::to_string(i);
     my_logger(chrono::system_clock::now(), current_remote_ratio, i, target_slo,
               current_latency, slack, stall_rate.at(HP), stall_rate.at(BE),
               my_action, logCounter++);
 
     // only release mba while we are in the green zone!
-    if (slack > slack_down_mba && current_remote_ratio != 0) {
+    if (slack > slack_down_mba && slack_xpn > slack_down_mba &&
+        current_remote_ratio != 0) {
       //  if (current_latency != 0 && current_latency > target_slo * (1 +
       //  delta_hp) &&
       //     current_remote_ratio != 0) {

@@ -27,11 +27,12 @@ extern int active_cpus;
 extern int fixed_ratio_value;
 
 extern double target_slo;
+extern double target_slo_xapian;
 extern std::string server;
 extern int port;
 extern int current_remote_ratio;
 extern int optimal_mba;
-extern double delta_hp;    // operational region of the controller (5%) - HP
+extern double delta_hp;  // operational region of the controller (5%) - HP
 extern double delta_be;  // operational region of the controller (5%) - BE
 
 // Worker Node

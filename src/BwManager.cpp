@@ -48,6 +48,9 @@ std::string monitored_cores_s;
 std::string weights;
 std::string strConfig = "";
 double target_slo;
+//TODO: make this dynamic
+//target_slo of xapian in ms
+double target_slo_xapian = 5;
 std::string server;
 int port;
 
