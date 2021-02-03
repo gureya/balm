@@ -104,7 +104,7 @@ void terminateHandler() {
   exit(EXIT_FAILURE);
 }
 
-unsigned long time_diff(struct timeval* start, struct timeval* stop) {
+unsigned long time_diff(struct timeval *start, struct timeval *stop) {
   unsigned long sec_res = stop->tv_sec - start->tv_sec;
   unsigned long usec_res = stop->tv_usec - start->tv_usec;
   return 1000000 * sec_res + usec_res;
@@ -210,13 +210,6 @@ void abc_numa() {
           // usleep(sleeptime);
           // usleep(500000);
           // log the measurements for the debugging purposes!
-          current_latency = get_latest_percentile_latency();
-          slack = (target_slo - current_latency) / target_slo;
-
-          // for xapian, TODO: Make this dynamic
-          current_latency_xpn = get_latest_percentile_latency_xpn();
-          slack_xpn =
-              (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
 
           my_action = "apply_mba-" + std::to_string(10);
           my_logger(chrono::system_clock::now(), current_remote_ratio,
@@ -269,7 +262,6 @@ void abc_numa() {
             }
           }
         }
-
       } else {
         LINFO(
             "Nothing can be done about SLO violation (Change in workload!), "
@@ -382,6 +374,9 @@ void page_migration_only() {
     current_latency = get_latest_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;
 
+    // for xapian, TODO: Make this dynamic
+    current_latency_xpn = get_latest_percentile_latency_xpn();
+    slack_xpn = (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
     // update the BE best stall rate
     // best_stall_rate.at(BE) =
     //    std::min(best_stall_rate.at(BE), stall_rate.at(BE));
@@ -392,7 +387,7 @@ void page_migration_only() {
               target_slo, current_latency, slack, stall_rate.at(HP),
               stall_rate.at(BE), my_action, logCounter++);
 
-    if (slack < slack_up) {
+    if (slack < slack_up || slack_xpn < slack_up) {
       //  if (current_latency != 0 && current_latency > target_slo * (1 +
       //  delta_hp)) {
       if (current_remote_ratio != 100) {
@@ -560,7 +555,6 @@ void mba_only() {
         // Enforce MBA
         LINFO("------------------------------------------------------");
         optimal_mba = search_optimal_mba();
-
       } else {
         LINFO(
             "Nothing can be done about SLO violation (Change in workload!), "
@@ -663,6 +657,10 @@ void mba_10() {
     current_latency = get_latest_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;
 
+    // for xapian, TODO: Make this dynamic
+    current_latency_xpn = get_latest_percentile_latency_xpn();
+    slack_xpn = (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
+
     // update the BE best stall rate
     //  best_stall_rate.at(BE) =
     //     std::min(best_stall_rate.at(BE), stall_rate.at(BE));
@@ -673,7 +671,7 @@ void mba_10() {
               target_slo, current_latency, slack, stall_rate.at(HP),
               stall_rate.at(BE), my_action, logCounter++);
 
-    if (slack < slack_up) {
+    if (slack < slack_up || slack_xpn < slack_up) {
       // if (current_latency != 0 && current_latency > target_slo * (1 +
       // delta_hp)) {
       LINFOF(
@@ -884,6 +882,10 @@ void linux_default() {
     current_latency = get_latest_percentile_latency();
     slack = (target_slo - current_latency) / target_slo;
 
+    // for xapian, TODO: Make this dynamic
+    current_latency_xpn = get_latest_percentile_latency_xpn();
+    slack_xpn = (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
+
     /*  LINFOF(
           "target(HP): %.0lf, current(HP): %.0lf, BE current: %.10lf, HP "
           "current: %.10lf",
@@ -982,7 +984,7 @@ double get_percentile_latency() {
       // cout << my_string << std::endl;
       service_time = boost::lexical_cast<double>(my_string);
     }
-  } catch (std::exception& e) {
+  } catch (std::exception &e) {
     LINFO("Problem connecting to the client");
     std::cerr << e.what() << std::endl;
     // exit(EXIT_FAILURE);
@@ -1027,7 +1029,7 @@ double get_percentile_latency_xpn() {
       service_time = boost::lexical_cast<double>(my_string);
       service_time = std::ceil(service_time / 1e6 * 100) / 100;
     }
-  } catch (std::exception& e) {
+  } catch (std::exception &e) {
     LINFO("Problem connecting to the client");
     std::cerr << e.what() << std::endl;
     // exit(EXIT_FAILURE);
@@ -1767,7 +1769,6 @@ int mba_binary_search(int current_mba, double progress) {
       next_mba = 50;
     else
       next_mba = 0;
-
   } else if (progress < 0) {
     if (current_mba == 40)
       next_mba = 60;
@@ -1892,22 +1893,39 @@ void print_logs_v2() {
   cout << "optimal mba:\t" << optimal_mba << "\toptimal ratio:\t"
        << current_remote_ratio << endl;
 
+  // print the violations for xapian, TODO: Make this dynamic
+  cout << "xapian, Total violations_f:\t" << vlts_cnt_f << endl;
+  cout << "xapian, Total violations_t:\t" << vlts_cnt_t << endl;
+
   // print also to a file, use append
-  FILE* f = fopen("abc_numa_results_log.txt", "a");
+  FILE *f = fopen("abc_numa_results_log.txt", "a");
   fprintf(f, "v_f:\t%d\tv_t:\t%d\tmba:\t%d\tlrr:\t%d\n", violations_counter_f,
           violations_counter_t, optimal_mba, current_remote_ratio);
+
+  // print the xapian data also to a file
+  fprintf(f, "xpn_v_f:\t%d\txpn_v_t:\t%d\n", vlts_cnt_f, vlts_cnt_t);
   // close the file
   fclose(f);
 }
 
 void print_to_file() {
-  FILE* f = fopen("abc_numa_log.txt", "w");
+  // log memcached latency data into a file
+  FILE *f = fopen("memcached_latency_log.txt", "w");
   for (size_t j = 0; j < percentile_samples.size(); j++) {
     // fprintf(f, "%d\n", (int)my_logs.at(j).HPA_currency_latency);
     fprintf(f, "%d\t%d\n", (int)j, (int)percentile_samples.at(j));
   }
   /* close the file*/
   fclose(f);
+
+  // log xapian latency data also into a file: TODO: factor this function out!
+  FILE *f_2 = fopen("xapian_latency_log.txt", "w");
+  for (size_t j = 0; j < percentile_samples_xpn.size(); j++) {
+    // fprintf(f, "%d\n", (int)my_logs.at(j).HPA_currency_latency);
+    fprintf(f_2, "%d\t%d\n", (int)j, (int)percentile_samples_xpn.at(j));
+  }
+  /* close the file*/
+  fclose(f_2);
 }
 
 /*
@@ -1936,13 +1954,13 @@ void test_fixed_ratio() {
 }
 
 void read_weights(std::string filename) {
-  FILE* fp;
-  char* line = NULL;
+  FILE *fp;
+  char *line = NULL;
   size_t len = 0;
   ssize_t read;
 
   const char s[2] = ",";
-  char* token;
+  char *token;
 
   int j = 0;
 
@@ -1956,7 +1974,7 @@ void read_weights(std::string filename) {
   }
 
   while ((read = getline(&line, &len, fp)) != -1) {
-    char* strtok_saveptr;
+    char *strtok_saveptr;
     // printf("Retrieved line of length %zu :\n", read);
     // printf("%s", line);
 

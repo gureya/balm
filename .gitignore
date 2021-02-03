@@ -187,6 +187,7 @@ test/boost_asio_sockets/client_2
 test/boost_asio_sockets/server_2
 test/boost_asio_sockets/async_server
 .vs/
+.vscode/
 
 #folders
 abc-numa-scripts/

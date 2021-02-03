@@ -107,6 +107,7 @@ void read_config(int argc, const char *argv[]) {
       LINFOF("REMOTE_RATIO: %d", current_remote_ratio);
       LINFOF("DELTA_HP: %.2lf", delta_hp);
       LINFOF("DELTA_BE: %.4lf", delta_be);
+      LINFOF("TARGET_SLO_XPN: %.0lf", target_slo_xapian);
     }
   } catch (const error &ex) {
     std::cerr << ex.what() << '\n';
