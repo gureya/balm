@@ -988,7 +988,8 @@ double get_percentile_latency() {
     LINFO("Problem connecting to the client");
     std::cerr << e.what() << std::endl;
     // exit(EXIT_FAILURE);
-    terminateHandler();
+    // Don't terminate just return 0
+    // terminateHandler();
   }
 
   return service_time;
@@ -1033,7 +1034,7 @@ double get_percentile_latency_xpn() {
     LINFO("Problem connecting to the client");
     std::cerr << e.what() << std::endl;
     // exit(EXIT_FAILURE);
-    terminateHandler();
+    //terminateHandler();
   }
 
   return service_time;
