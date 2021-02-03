@@ -1922,7 +1922,7 @@ void print_to_file() {
   FILE *f_2 = fopen("xapian_latency_log.txt", "w");
   for (size_t j = 0; j < percentile_samples_xpn.size(); j++) {
     // fprintf(f, "%d\n", (int)my_logs.at(j).HPA_currency_latency);
-    fprintf(f_2, "%d\t%d\n", (int)j, (int)percentile_samples_xpn.at(j));
+    fprintf(f_2, "%d\t%.2f\n", (int)j, percentile_samples_xpn.at(j));
   }
   /* close the file*/
   fclose(f_2);
