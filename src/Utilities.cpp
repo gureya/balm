@@ -122,6 +122,7 @@ void get_memory_segments() {
   mem_segments = get_shared_memory();
 
   LINFOF("Number of Segments: %lu", mem_segments.size());
+  //in case of mg.c.x
   /*sleep(1);
   LINFO("Enforce initial weighted interleaving for BE if not enforce");
   place_all_pages(mem_segments, current_remote_ratio);
@@ -245,7 +246,7 @@ void abc_numa() {
           }
           if (slack < slack_up) {
             // danger zone, apply page migration
-            if (optimal_mba != 10) {
+            /*if (optimal_mba != 10) {
               // apply mba_10 immediately
               apply_mba(10);
               optimal_mba = 10;
@@ -257,9 +258,9 @@ void abc_numa() {
               current_latency_xpn = get_latest_percentile_latency_xpn();
               slack_xpn =
                   (target_slo_xapian - current_latency_xpn) / target_slo_xapian;
-            } else {
+            } else {*/
               current_remote_ratio = apply_pagemigration_lr_same_socket();
-            }
+            //}
           }
         }
       } else {
@@ -985,8 +986,8 @@ double get_percentile_latency() {
       service_time = boost::lexical_cast<double>(my_string);
     }
   } catch (std::exception &e) {
-    LINFO("Problem connecting to the client");
-    std::cerr << e.what() << std::endl;
+    //LINFO("Problem connecting to the client");
+    //std::cerr << e.what() << std::endl;
     // exit(EXIT_FAILURE);
     // Don't terminate just return 0
     // terminateHandler();
@@ -999,6 +1000,7 @@ double get_percentile_latency_xpn() {
   double service_time = 0;
   // for now this is hard-coded
   int port2 = 1235;
+  //server = "146.193.41.140";
 
   try {
     // socket creation
@@ -1031,8 +1033,8 @@ double get_percentile_latency_xpn() {
       service_time = std::ceil(service_time / 1e6 * 100) / 100;
     }
   } catch (std::exception &e) {
-    LINFO("Problem connecting to the client");
-    std::cerr << e.what() << std::endl;
+    //LINFO("Problem connecting to the client");
+    //std::cerr << e.what() << std::endl;
     // exit(EXIT_FAILURE);
     //terminateHandler();
   }

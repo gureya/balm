@@ -193,10 +193,14 @@ void read_config(int argc, const char *argv[]) {
 void start_bw_manager() {
   // first make sure the sliding window has been set
   double cl = get_percentile_latency();
+  double cl_xpn = get_percentile_latency_xpn();
   int be_warmup = 0;
   LINFO("Setting up the sliding window");
-  while (cl <= 33) {
+  //Atleast wait for one LCA
+  //while (cl_xpn <= 0) {
+  while (cl <= 33 && cl_xpn <= 0) {
     cl = get_percentile_latency();
+    cl_xpn = get_percentile_latency_xpn();
     be_warmup = 1;
   }
   // LINFOF("BE_WARMUP_TIME=%d", be_warmup);
