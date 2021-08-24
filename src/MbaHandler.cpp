@@ -13,7 +13,11 @@
 /**
  * MBA struct type
  */
-enum mba_type { REQUESTED = 0, ACTUAL, MAX_MBA_TYPES };
+enum mba_type {
+  REQUESTED = 0,
+  ACTUAL,
+  MAX_MBA_TYPES
+};
 
 /**
  * Maintains number of MBA COS to be set
@@ -89,5 +93,6 @@ void reset_mba() {
   } else {
     LINFO("Success shutting down PQoS library");
   }
-  if (p_mba_ids != NULL) free(p_mba_ids);
+  if (p_mba_ids != NULL)
+    free(p_mba_ids);
 }

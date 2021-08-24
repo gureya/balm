@@ -61,7 +61,7 @@ double delta_be;  // operational region of the controller (5%) - BE
 
 void read_config(int argc, const char *argv[]) {
   try {
-    options_description generalOptions{"General Options"};
+    options_description generalOptions { "General Options" };
     generalOptions.add_options()("help,h", "Help screen")(
         "config,c",
         value<std::string>(&strConfig)->default_value("default.ini"),
@@ -122,10 +122,10 @@ void read_config(int argc, const char *argv[]) {
 
   MONITORED_CORES = true;
   /* MONITORED_CORES = getenv("BWMAN_CORES") != nullptr;
-  if (MONITORED_CORES) {
-    monitored_cores_s = getenv("BWMAN_CORES");
-    LINFOF("monitoring_core: %s", monitored_cores_s.c_str());
-    */
+   if (MONITORED_CORES) {
+   monitored_cores_s = getenv("BWMAN_CORES");
+   LINFOF("monitoring_core: %s", monitored_cores_s.c_str());
+   */
 
   // tokenize the bwman_cores!
   string s(monitored_cores_s);
@@ -147,15 +147,14 @@ void read_config(int argc, const char *argv[]) {
 
   active_cpus = BWMAN_CORES.size();
   if (active_cpus < 2) {
-    LINFO(
-        "At least provide 2 monitoring cores (co-scheduled applications > "
-        "2)");
+    LINFO("At least provide 2 monitoring cores (co-scheduled applications > "
+          "2)");
     exit(EXIT_FAILURE);
   }
 
   /* } else {
-     LINFO("At least provide 1 monitored core! e.g. BWMAN_CORES=0,10");
-     exit(EXIT_FAILURE);
+   LINFO("At least provide 1 monitored core! e.g. BWMAN_CORES=0,10");
+   exit(EXIT_FAILURE);
    }*/
 
   // check if the monitored cores vector is empty
@@ -166,7 +165,7 @@ void read_config(int argc, const char *argv[]) {
 
   /* BWMAN_MODE = getenv("BWMAN_MODE") != nullptr;
    if (BWMAN_MODE) {
-     bwman_mode_value = stoi(getenv("BWMAN_MODE"));
+   bwman_mode_value = stoi(getenv("BWMAN_MODE"));
    }
    LINFOF("BWMAN_MODE: %d", bwman_mode_value);
    */
@@ -179,15 +178,15 @@ void read_config(int argc, const char *argv[]) {
 
   /* WEIGHTS = getenv("BWMAN_WEIGHTS") != nullptr;
    if (WEIGHTS) {
-     weights = getenv("BWMAN_WEIGHTS");*/
+   weights = getenv("BWMAN_WEIGHTS");*/
   // read the weights
   read_weights(weights);
   /*} else {
-    LDEBUG(
-        "Sorry, Weights have not been provided! e.g. "
-        "BWMAN_WEIGHTS=weights/weights_1.txt");
-    exit(EXIT_FAILURE);
-  }*/
+   LDEBUG(
+   "Sorry, Weights have not been provided! e.g. "
+   "BWMAN_WEIGHTS=weights/weights_1.txt");
+   exit(EXIT_FAILURE);
+   }*/
 }
 
 void start_bw_manager() {
@@ -218,31 +217,38 @@ void start_bw_manager() {
 
   switch (bwman_mode_value) {
     case 0:
-      LINFO("Running the abc-numa mode!");
+      LINFO("Running the abc-numa mode!")
+      ;
       abc_numa();
       break;
     case 1:
-      LINFO("Running the page-migration-only mode!");
+      LINFO("Running the page-migration-only mode!")
+      ;
       page_migration_only();
       break;
     case 2:
-      LINFO("Running mba-only mode!");
+      LINFO("Running mba-only mode!")
+      ;
       mba_only();
       break;
     case 3:
-      LINFO("Running the linux-default mode!");
+      LINFO("Running the linux-default mode!")
+      ;
       linux_default();
       break;
     case 4:
-      LINFO("Running the mba_10 mode!");
+      LINFO("Running the mba_10 mode!")
+      ;
       mba_10();
       break;
     case 5:
-      LINFO("Running the abc-numa test mode!");
+      LINFO("Running the abc-numa test mode!")
+      ;
       bw_manager_test();
       break;
     default:
-      LINFO("Invalid mode!");
+      LINFO("Invalid mode!")
+      ;
       exit(EXIT_FAILURE);
       break;
   }
@@ -268,7 +274,6 @@ int main(int argc, const char *argv[]) {
   // get_sum_nww_ww(BWMAN_WORKERS);
   // initialize likwid
   // initialize_likwid();
-
   // initialize mba
   initialize_mba();
 

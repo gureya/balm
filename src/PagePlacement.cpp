@@ -52,7 +52,8 @@ void get_new_weights_v2(double s) {
         break;
       default:
         LINFOF("Sorry, %d Worker nodes is not supported at the moment!\n",
-               BWMAN_WORKERS);
+               BWMAN_WORKERS)
+        ;
         exit(-1);
     }
   }
@@ -97,77 +98,68 @@ void get_new_weights(double s) {
             BWMAN_WEIGHTS_temp.at(i).first = round(s);
           } else {
             BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-            BWMAN_WEIGHTS_temp.at(i).first =
-                round((BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+            BWMAN_WEIGHTS_temp.at(i).first = round(
+                (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
           }
 
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first =
-              round((BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) *
-                    10) /
-              10;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
       case 2:
         // workers: 0, 1
-        if (BWMAN_WEIGHTS.at(i).second == 0 ||
-            BWMAN_WEIGHTS.at(i).second == 1) {
+        if (BWMAN_WEIGHTS.at(i).second == 0
+            || BWMAN_WEIGHTS.at(i).second == 1) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first =
-              round((BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first =
-              round((BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) *
-                    10) /
-              10;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
       case 3:
         // workers: 1,2,3
-        if (BWMAN_WEIGHTS.at(i).second == 1 ||
-            BWMAN_WEIGHTS.at(i).second == 2 ||
-            BWMAN_WEIGHTS.at(i).second == 3) {
+        if (BWMAN_WEIGHTS.at(i).second == 1 || BWMAN_WEIGHTS.at(i).second == 2
+            || BWMAN_WEIGHTS.at(i).second == 3) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first =
-              round((BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first =
-              round((BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) *
-                    10) /
-              10;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
       case 4:
         // workers: 0,1,2,3
-        if (BWMAN_WEIGHTS.at(i).second == 0 ||
-            BWMAN_WEIGHTS.at(i).second == 1 ||
-            BWMAN_WEIGHTS.at(i).second == 2 ||
-            BWMAN_WEIGHTS.at(i).second == 3) {
+        if (BWMAN_WEIGHTS.at(i).second == 0 || BWMAN_WEIGHTS.at(i).second == 1
+            || BWMAN_WEIGHTS.at(i).second == 2
+            || BWMAN_WEIGHTS.at(i).second == 3) {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first =
-              round((BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_ww * new_s) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         } else {
           BWMAN_WEIGHTS_temp.at(i).second = BWMAN_WEIGHTS.at(i).second;
-          BWMAN_WEIGHTS_temp.at(i).first =
-              round((BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) *
-                    10) /
-              10;
+          BWMAN_WEIGHTS_temp.at(i).first = round(
+              (BWMAN_WEIGHTS.at(i).first / sum_nww * (100 - new_s)) * 10) / 10;
           sum += BWMAN_WEIGHTS_temp.at(i).first;
         }
         break;
       default:
         LINFOF("Sorry, %d Worker nodes is not supported at the moment!\n",
-               BWMAN_WORKERS);
+               BWMAN_WORKERS)
+        ;
         exit(-1);
     }
   }
@@ -226,7 +218,7 @@ void get_node_mappings(int page_count, int *nodes) {
   printf("Total pages: %d\n", sum_of_elems);
   double sum = 0.0;
   for (i = 0; i < MAX_NODES; i++) {
-    double weight = (((double)node_count.at(i) / (double)sum_of_elems) * 100);
+    double weight = (((double) node_count.at(i) / (double) sum_of_elems) * 100);
     printf("Node %d count %d Weight %.2f\n", i, node_count.at(i), weight);
     sum += weight;
   }
@@ -354,16 +346,16 @@ void move_pages_remote(pid_t pid, void *start, unsigned long len,
 
   int page_count = len / pagesize;
 
-  addr = (void **)malloc(sizeof(char *) * page_count);
-  status = (int *)malloc(page_count * sizeof(int *));
-  nodes = (int *)malloc(page_count * sizeof(int *));
+  addr = (void **) malloc(sizeof(char *) * page_count);
+  status = (int *) malloc(page_count * sizeof(int *));
+  nodes = (int *) malloc(page_count * sizeof(int *));
 
   if (!start || !addr || !status || !nodes) {
     LINFO("Unable to allocate memory");
     exit(1);
   }
 
-  pages = (char *)start;
+  pages = (char *) start;
 
   // uniform distribution memory allocation (using the bwap style format)
   // first set the page addresses, openmp for faster processing

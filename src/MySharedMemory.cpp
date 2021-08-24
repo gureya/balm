@@ -24,15 +24,13 @@ std::vector<MySharedMemory> get_shared_memory() {
       // construct objects associated with a name.
       // Connect to the already created shared memory segment
       // and initialize needed resources
-      ipc::managed_shared_memory segment(ipc::open_only,
-                                         "MySharedMemory");  // segment name
+      ipc::managed_shared_memory segment(ipc::open_only, "MySharedMemory");  // segment name
 
       // Alias an STL compatible allocator of ints that allocates ints from the
       // managed shared memory segment.  This allocator will allow to place
       // containers in managed shared memory segments
       typedef ipc::allocator<MySharedMemory,
-                             ipc::managed_shared_memory::segment_manager>
-          ShmemAllocator;
+          ipc::managed_shared_memory::segment_manager> ShmemAllocator;
 
       // Alias a vector that uses the previous STL-like allocator
       typedef ipc::vector<MySharedMemory, ShmemAllocator> MyVector;

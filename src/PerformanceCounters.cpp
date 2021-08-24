@@ -110,15 +110,15 @@ void initialize_likwid() {
     active_cpus = BWMAN_CORES.size();
 
     LINFOF(
-        "| [NODES] - %d: [CPUS] - %d: [CPUS_PER_NODE] - %d: [ACTIVE_CPUS] - %d "
-        "|\n",
+        "| [NODES] - %d: [CPUS] - %d: [CPUS_PER_NODE] - %d: [ACTIVE_CPUS] - %d " "|\n",
         nnodes, ncpus, ncpus_per_node, active_cpus);
 
     // cpus = (int*) malloc(topo->numHWThreads * sizeof(int));
     // for now only monitor one CPU
-    cpus = (int *)malloc(active_cpus * sizeof(int));
+    cpus = (int *) malloc(active_cpus * sizeof(int));
 
-    if (!cpus) exit(-1);  // return 1;
+    if (!cpus)
+      exit(-1);  // return 1;
 
     // set the monitoring core
     for (int i = 0; i < active_cpus; i++) {
@@ -173,8 +173,7 @@ void initialize_likwid() {
 
     if (gid < 0) {
       LDEBUGF(
-          "Failed to add event string %s to LIKWID's performance monitoring "
-          "module\n",
+          "Failed to add event string %s to LIKWID's performance monitoring " "module\n",
           intel_estr);
       perfmon_finalize();
       topology_finalize();
@@ -186,8 +185,7 @@ void initialize_likwid() {
     err = perfmon_setupCounters(gid);
     if (err < 0) {
       LDEBUGF(
-          "Failed to setup group %d in LIKWID's performance monitoring "
-          "module\n",
+          "Failed to setup group %d in LIKWID's performance monitoring " "module\n",
           gid);
       perfmon_finalize();
       topology_finalize();
@@ -245,8 +243,8 @@ std::vector<double> get_stall_rate() {
   }
 
   for (i = 0; i < active_cpus; i++) {
-    stall_rate.at(i) = ((double)(stalls.at(i) - prev_stalls.at(i))) /
-                       (cycles.at(i) - prev_cycles.at(i));
+    stall_rate.at(i) = ((double) (stalls.at(i) - prev_stalls.at(i)))
+        / (cycles.at(i) - prev_cycles.at(i));
     // stall_rate.at(i) = ((double) (stalls.at(i))) / (cycles.at(i));
     /*printf("CPU: %d\n", cpus[i]);
      printf("cycles: %.0f prev_cycles: %.0f cycles - prev_cycles: %.0f\n",
@@ -362,14 +360,14 @@ std::vector<double> get_average_stall_rate(int num_measurements,
 inline uint64_t readtsc(void) {
   uint32_t lo, hi;
   __asm __volatile__("rdtsc" : "=a"(lo), "=d"(hi) : :);
-  return lo | (uint64_t)hi << 32;
+  return lo | (uint64_t) hi << 32;
 }
 
 // read performance monitor counter
 inline uint64_t readpmc(int32_t n) {
   uint32_t lo, hi;
   __asm __volatile__("rdpmc" : "=a"(lo), "=d"(hi) : "c"(n) :);
-  return lo | (uint64_t)hi << 32;
+  return lo | (uint64_t) hi << 32;
 }
 
 #else  // not Linux
